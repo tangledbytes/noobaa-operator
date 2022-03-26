@@ -62,9 +62,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -1628,7 +1628,7 @@ func GetAvailabeKubeCli() string {
 	return kubeCommand
 }
 
-// IgnoreIfNotInNamespace returns a predicate function that ignores the object 
+// IgnoreIfNotInNamespace returns a predicate function that ignores the object
 // if it is not in the given namespace
 func IgnoreIfNotInNamespace(ns string) *predicate.Funcs {
 	return &predicate.Funcs{
@@ -1662,6 +1662,7 @@ func IgnoreIfNotInNamespace(ns string) *predicate.Funcs {
 		},
 	}
 }
+
 // GetBackingStoreSecret returns the secret reference of the backing store if it is relevant to the type
 func GetBackingStoreSecret(bs *nbv1.BackingStore) (*corev1.SecretReference, error) {
 	switch bs.Spec.Type {
@@ -1946,4 +1947,4 @@ func referSameObject(a, b metav1.OwnerReference) bool {
 	}
 
 	return aGV.Group == bGV.Group && a.Kind == b.Kind && a.Name == b.Name
-
+}
