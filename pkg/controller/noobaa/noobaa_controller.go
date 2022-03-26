@@ -78,7 +78,7 @@ func Add(mgr manager.Manager) error {
 	ownerHandler := &handler.EnqueueRequestForOwner{IsController: true, OwnerType: &nbv1.NooBaa{}}
 
 	err = c.Watch(&source.Kind{Type: &nbv1.NooBaa{}}, &handler.EnqueueRequestForObject{},
-		noobaaPredicate, &logEventsPredicate)
+		util.IgnoreIfNotInNamespace(options.Namespace), noobaaPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
@@ -104,17 +104,17 @@ func Add(mgr manager.Manager) error {
 	}
 
 	storageClassHandler := handler.EnqueueRequestsFromMapFunc(func(mo client.Object) []reconcile.Request {
-			sc, ok := mo.(*storagev1.StorageClass)
-			if !ok || sc.Provisioner != options.ObjectBucketProvisionerName() {
-				return nil
-			}
-			return []reconcile.Request{{
-				NamespacedName: types.NamespacedName{
-					Name:      options.SystemName,
-					Namespace: options.Namespace,
-				},
-			}}
-		},
+		sc, ok := mo.(*storagev1.StorageClass)
+		if !ok || sc.Provisioner != options.ObjectBucketProvisionerName() {
+			return nil
+		}
+		return []reconcile.Request{{
+			NamespacedName: types.NamespacedName{
+				Name:      options.SystemName,
+				Namespace: options.Namespace,
+			},
+		}}
+	},
 	)
 
 	// Watch for StorageClass changes to trigger reconcile and recreate it when deleted

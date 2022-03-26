@@ -132,10 +132,17 @@ func RunInstall(cmd *cobra.Command, args []string) {
 	noDeploy, _ := cmd.Flags().GetBool("no-deploy")
 	if !noDeploy {
 		operatorContainer := c.Deployment.Spec.Template.Spec.Containers[0]
-		operatorContainer.Env = append(operatorContainer.Env, corev1.EnvVar{
-			Name:  "NOOBAA_CLI_DEPLOYMENT",
-			Value: "true",
-		})
+		operatorContainer.Env = append(
+			operatorContainer.Env,
+			corev1.EnvVar{
+				Name:  "NOOBAA_CLI_DEPLOYMENT",
+				Value: "true",
+			},
+			corev1.EnvVar{
+				Name:  "WATCH_NAMESPACE",
+				Value: options.WatchNamespace(),
+			},
+		)
 		c.Deployment.Spec.Template.Spec.Containers[0].Env = operatorContainer.Env
 		util.KubeCreateSkipExisting(c.Deployment)
 	}
@@ -283,7 +290,7 @@ func LoadOperatorConf(cmd *cobra.Command) *Conf {
 	c.ClusterRole.Namespace = options.Namespace
 	c.Deployment.Namespace = options.Namespace
 
-	c.ClusterRole.Name = options.SubDomainNS()
+	configureClusterRole(c.ClusterRole)
 	c.ClusterRoleBinding.Name = c.ClusterRole.Name
 	c.ClusterRoleBinding.RoleRef.Name = c.ClusterRole.Name
 	for i := range c.ClusterRoleBinding.Subjects {
@@ -470,4 +477,31 @@ func AdmissionWebhookSetup(c *Conf) {
 		},
 	}
 	c.Deployment.Spec.Template.Spec.Volumes = volumes
+}
+
+func configureClusterRole(cr *rbacv1.ClusterRole) {
+	cr.Name = options.SubDomainNS()
+
+	// If operator is deployed in "AllNamespace" mode then operator
+	// needs cluster wide access to multiple resources
+	if options.WatchNamespace() == "" {
+		cr.Rules = append(
+			cr.Rules,
+			rbacv1.PolicyRule{
+				APIGroups: []string{""},
+				Resources: []string{"pods", "services", "persistentvolumeclaims", "serviceaccounts"},
+				Verbs:     []string{"*"},
+			},
+			rbacv1.PolicyRule{
+				APIGroups: []string{"apps"},
+				Resources: []string{"deployments", "statefulsets"},
+				Verbs:     []string{"*"},
+			},
+			rbacv1.PolicyRule{
+				APIGroups: []string{"autoscaling"},
+				Resources: []string{"horizontalpodautoscalers"},
+				Verbs:     []string{"*"},
+			},
+		)
+	}
 }

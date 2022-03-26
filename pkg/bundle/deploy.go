@@ -5046,10 +5046,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: WATCH_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
 `
 
 const Sha256_deploy_role_yaml = "eb0941a5e095fa7ac391e05782e6847e419e4d0dc17f6d8151df0032c977c743"
@@ -5405,4 +5401,3 @@ kind: ServiceAccount
 metadata:
   name: noobaa-odf-ui
 `
-

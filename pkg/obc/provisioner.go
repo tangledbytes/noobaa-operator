@@ -287,11 +287,23 @@ func NewBucketRequest(
 			)
 		}
 
+		bucketClassNamespace := r.OBC.Spec.AdditionalConfig["bucketclassNamespace"]
+		if bucketClassNamespace == "" {
+			bucketClassNamespace = bucketOptions.Parameters["bucketclassNamespace"]
+		}
+		if bucketClassNamespace == "" {
+			// If no bucketclassNamespace is provided then look for the bucketclass
+			// in the provisioner namespace
+			//
+			// This will make sure that this change is a backwards comaptible change
+			bucketClassNamespace = p.Namespace
+		}
+
 		r.BucketClass = &nbv1.BucketClass{
 			TypeMeta: metav1.TypeMeta{Kind: "BucketClass"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      bucketClassName,
-				Namespace: p.Namespace,
+				Namespace: bucketClassNamespace,
 			},
 		}
 		if !util.KubeCheck(r.BucketClass) {
@@ -333,11 +345,17 @@ func NewBucketRequest(
 		r.BucketName = ob.Spec.Connection.Endpoint.BucketName
 		r.AccountName = ob.Spec.AdditionalState["account"]
 		bucketClassName := ob.Spec.AdditionalState["bucketclass"]
+
+		bucketClassNamespace := ob.Spec.AdditionalState["bucketclassNamespace"]
+		if bucketClassNamespace == "" {
+			bucketClassNamespace = p.Namespace
+		}
+
 		r.BucketClass = &nbv1.BucketClass{
 			TypeMeta: metav1.TypeMeta{Kind: "BucketClass"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      bucketClassName,
-				Namespace: p.Namespace,
+				Namespace: bucketClassNamespace,
 			},
 		}
 		if !util.KubeCheck(r.BucketClass) {

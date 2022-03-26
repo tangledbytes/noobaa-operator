@@ -5,11 +5,13 @@ import (
 
 	nbv1 "github.com/noobaa/noobaa-operator/v5/pkg/apis/noobaa/v1alpha1"
 	"github.com/noobaa/noobaa-operator/v5/pkg/bucketclass"
+	"github.com/noobaa/noobaa-operator/v5/pkg/options"
 	"github.com/noobaa/noobaa-operator/v5/pkg/util"
 
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -52,17 +54,17 @@ func Add(mgr manager.Manager) error {
 
 	// Watch for changes on resources to trigger reconcile
 	err = c.Watch(&source.Kind{Type: &nbv1.BucketClass{}}, &handler.EnqueueRequestForObject{},
-		bucketClassPredicate, &logEventsPredicate)
+		ignoreUnmatchedProvisioner(options.Namespace), bucketClassPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
 
 	backingStoreHandler := handler.EnqueueRequestsFromMapFunc(func(obj client.Object) []reconcile.Request {
-			return bucketclass.MapBackingstoreToBucketclasses(types.NamespacedName{
-				Name:      obj.GetName(),
-				Namespace: obj.GetNamespace(),
-			})
-		},
+		return bucketclass.MapBackingstoreToBucketclasses(types.NamespacedName{
+			Name:      obj.GetName(),
+			Namespace: obj.GetNamespace(),
+		})
+	},
 	)
 	err = c.Watch(&source.Kind{Type: &nbv1.BackingStore{}}, backingStoreHandler, logEventsPredicate)
 	if err != nil {
@@ -70,11 +72,11 @@ func Add(mgr manager.Manager) error {
 	}
 
 	namespaceStoreHandler := handler.EnqueueRequestsFromMapFunc(func(obj client.Object) []reconcile.Request {
-			return bucketclass.MapNamespacestoreToBucketclasses(types.NamespacedName{
-				Name:      obj.GetName(),
-				Namespace: obj.GetNamespace(),
-			})
-		},
+		return bucketclass.MapNamespacestoreToBucketclasses(types.NamespacedName{
+			Name:      obj.GetName(),
+			Namespace: obj.GetNamespace(),
+		})
+	},
 	)
 	err = c.Watch(&source.Kind{Type: &nbv1.NamespaceStore{}}, namespaceStoreHandler, logEventsPredicate)
 	if err != nil {
@@ -82,4 +84,23 @@ func Add(mgr manager.Manager) error {
 	}
 
 	return nil
+}
+
+func ignoreUnmatchedProvisioner(provisionerName string) predicate.Predicate {
+	provisionerLabel := "provisioner"
+
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return e.Object.GetLabels()[provisionerLabel] == provisionerName || e.Object.GetNamespace() == options.Namespace
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return e.Object.GetLabels()[provisionerLabel] == provisionerName || e.Object.GetNamespace() == options.Namespace
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return e.ObjectNew.GetLabels()[provisionerLabel] == provisionerName || e.ObjectNew.GetNamespace() == options.Namespace
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return e.Object.GetLabels()[provisionerLabel] == provisionerName || e.Object.GetNamespace() == options.Namespace
+		},
+	}
 }

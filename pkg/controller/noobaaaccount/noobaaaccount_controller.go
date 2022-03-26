@@ -5,6 +5,7 @@ import (
 
 	nbv1 "github.com/noobaa/noobaa-operator/v5/pkg/apis/noobaa/v1alpha1"
 	"github.com/noobaa/noobaa-operator/v5/pkg/noobaaaccount"
+	"github.com/noobaa/noobaa-operator/v5/pkg/options"
 	"github.com/noobaa/noobaa-operator/v5/pkg/util"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -50,7 +51,7 @@ func Add(mgr manager.Manager) error {
 
 	// Watch for changes on resources to trigger reconcile
 	err = c.Watch(&source.Kind{Type: &nbv1.NooBaaAccount{}}, &handler.EnqueueRequestForObject{},
-		noobaaAccountPredicate, &logEventsPredicate)
+		util.IgnoreIfNotInNamespace(options.Namespace), noobaaAccountPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}

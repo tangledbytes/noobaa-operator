@@ -44,7 +44,7 @@ func Add(mgr manager.Manager) error {
 
 	// Watch for cephcluster resource changes
 	err = c.Watch(&source.Kind{Type: &cephv1.CephCluster{}}, &handler.EnqueueRequestForObject{},
-		&CephCapacityChangedPredicate{}, &logEventsPredicate)
+		util.IgnoreIfNotInNamespace(options.Namespace), &CephCapacityChangedPredicate{}, &logEventsPredicate)
 	if err != nil {
 		return err
 	}

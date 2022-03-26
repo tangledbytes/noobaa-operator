@@ -59,6 +59,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 const (
@@ -1480,9 +1482,7 @@ func GetWatchNamespace() (string, error) {
 	if !found {
 		return "", fmt.Errorf("%s must be set", WatchNamespaceEnvVar)
 	}
-	if len(ns) == 0 {
-		return "", fmt.Errorf("%s must not be empty", WatchNamespaceEnvVar)
-	}
+
 	return ns, nil
 }
 
@@ -1598,14 +1598,14 @@ func NooBaaCondition(noobaa *nbv1.NooBaa, t conditionsv1.ConditionType, s corev1
 func GetAvailabeKubeCli() string {
 	kubeCommand := "kubectl"
 	cmd := exec.Command(kubeCommand)
-	err := cmd.Run(); 
+	err := cmd.Run()
 	if err == nil {
 		log.Printf("✅ kubectl exists - will use it for diagnostics\n")
 	} else {
 		log.Printf("❌ Could not find kubectl, will try to use oc instead, error: %s\n", err)
 		kubeCommand = "oc"
 		cmd = exec.Command(kubeCommand)
-		err = cmd.Run(); 
+		err = cmd.Run()
 		if err == nil {
 			log.Printf("✅ oc exists - will use it for diagnostics\n")
 		} else {
@@ -1613,4 +1613,37 @@ func GetAvailabeKubeCli() string {
 		}
 	}
 	return kubeCommand
+}
+
+func IgnoreIfNotInNamespace(ns string) *predicate.Funcs {
+	return &predicate.Funcs{
+		CreateFunc: func(ce event.CreateEvent) bool {
+			if ce.Object == nil {
+				return false
+			}
+
+			return ce.Object.GetNamespace() == ns
+		},
+		DeleteFunc: func(de event.DeleteEvent) bool {
+			if de.Object == nil {
+				return false
+			}
+
+			return de.Object.GetNamespace() == ns
+		},
+		UpdateFunc: func(ue event.UpdateEvent) bool {
+			if ue.ObjectNew == nil {
+				return false
+			}
+
+			return ue.ObjectNew.GetNamespace() == ns
+		},
+		GenericFunc: func(ge event.GenericEvent) bool {
+			if ge.Object == nil {
+				return false
+			}
+
+			return ge.Object.GetNamespace() == ns
+		},
+	}
 }

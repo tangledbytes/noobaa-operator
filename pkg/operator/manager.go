@@ -46,7 +46,7 @@ func RunOperator(cmd *cobra.Command, args []string) {
 
 	// Create a new Cmd to provide shared dependencies and start components
 	mgr, err := manager.New(config, manager.Options{
-		Namespace:          options.Namespace,
+		Namespace:          options.WatchNamespace(),
 		MapperProvider:     util.MapperProvider, // restmapper.NewDynamicRESTMapper,
 		MetricsBindAddress: fmt.Sprintf("%s:%d", metricsHost, metricsPort),
 	})
