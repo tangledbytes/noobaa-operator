@@ -8,7 +8,9 @@ import (
 	"github.com/noobaa/noobaa-operator/v5/pkg/options"
 	"github.com/noobaa/noobaa-operator/v5/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -73,6 +75,20 @@ func Add(mgr manager.Manager) error {
 	}
 	err = c.Watch(&source.Kind{Type: &corev1.PersistentVolumeClaim{}}, ownerHandler,
 		util.IgnoreIfNotInNamespace(options.Namespace), &filterForOwnerPredicate, &logEventsPredicate)
+	if err != nil {
+		return err
+	}
+
+	// setting another handler to watch events on secrets that not necessarily owned by the Backingstore.
+	// only one OwnerReference can be a controller see:
+	// https://github.com/kubernetes-sigs/controller-runtime/blob/master/pkg/controller/controllerutil/controllerutil.go#L54
+	secretsHandler := handler.EnqueueRequestsFromMapFunc(func(obj client.Object) []reconcile.Request {
+		return backingstore.MapSecretToBackingStores(types.NamespacedName{
+			Name:      obj.GetName(),
+			Namespace: obj.GetNamespace(),
+		})
+	})
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, secretsHandler, logEventsPredicate)
 	if err != nil {
 		return err
 	}
