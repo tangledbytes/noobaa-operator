@@ -3,6 +3,7 @@ package bucketclass
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	nbv1 "github.com/noobaa/noobaa-operator/v5/pkg/apis/noobaa/v1alpha1"
@@ -231,6 +232,9 @@ func (r *Reconciler) ReconcilePhaseVerifying() error {
 				if backStore.Status.Phase != nbv1.BackingStorePhaseReady {
 					return fmt.Errorf("NooBaa BackingStore %q is not yet ready", backingStoreName)
 				}
+				if !isBackingStoreCompatible(r.BucketClass, backStore) {
+					return fmt.Errorf("NooBaa BackingStore %q is not compatible with %q", backingStoreName, r.BucketClass.Name)
+				}
 			}
 		}
 	}
@@ -255,6 +259,9 @@ func (r *Reconciler) ReconcilePhaseVerifying() error {
 			}
 			if nsStore.Status.Phase != nbv1.NamespaceStorePhaseReady {
 				return fmt.Errorf("NooBaa NamespaceStore %q is not yet ready", name)
+			}
+			if !isNamespaceStoreCompatible(r.BucketClass, nsStore) {
+				return fmt.Errorf("NooBaa NamespaceStore %q is not compatible with %q", name, r.BucketClass.Name)
 			}
 		}
 	}
@@ -446,4 +453,30 @@ func (r *Reconciler) UpdateBucketClass(bucketNames []string) error {
 
 	log.Infof("✅ Successfully updated bucket class %q", r.BucketClass.Name)
 	return nil
+}
+
+func isBackingStoreCompatible(bucketClass *nbv1.BucketClass, backingStore *nbv1.BackingStore) bool {
+	return isStoreCompatible(bucketClass, backingStore)
+}
+
+func isNamespaceStoreCompatible(bucketClass *nbv1.BucketClass, namespaceStore *nbv1.NamespaceStore) bool {
+	return isStoreCompatible(bucketClass, namespaceStore)
+}
+
+func isStoreCompatible(bucketClass *nbv1.BucketClass, obj client.Object) bool {
+	if bucketClass.GetNamespace() == obj.GetNamespace() {
+		return true
+	}
+
+	if obj.GetAnnotations()["allowedNamespaces"] != "" {
+		allowedNamespaces := strings.Split(obj.GetAnnotations()["allowedNamespaces"], ",")
+
+		for _, allowedNamespace := range allowedNamespaces {
+			if bucketClass.GetNamespace() == strings.Trim(allowedNamespace, " ") {
+				return true
+			}
+		}
+	}
+
+	return false
 }
