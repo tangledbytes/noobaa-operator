@@ -178,6 +178,28 @@ spec:
 
 In case the credentials of a backing-store need to be updated due to a periodic security policy or concern, the appropriate secret should be updated by the user, and the operator will be responsible for watching changes in those secrets and propagating the new credential update to the NooBaa system server.
 
+#### BackingStore access management
+
+By default, any BucketClass that is in the same namespace as the BackingStore can refer and use it. For the cases where BackingStore wants to explicitly allow access to BucketClasses in different namespaces, BackingStore can be provided a comma separated namespaces in `metadata.annotations.allowedNamespaces`.
+
+```yaml
+apiVersion: noobaa.io/v1alpha1
+kind: BackingStore
+metadata:
+  annotations:
+    allowedNamespaces: test
+  name: noobaa-test-backing-store
+spec:
+  pvPool:
+    numVolumes: 1
+    resources:
+      requests:
+        storage: 50Gi
+    secret: {}
+    storageClass: standard
+  type: pv-pool
+```
+
 
 # Read Status
 

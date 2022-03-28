@@ -123,6 +123,25 @@ spec:
 
 In case the credentials of a Namespace-store need to be updated due to periodic security policy or concern, the appropriate secret should be updated by the user, and the operator will be responsible for watching changes in those secrets and propagating the new credential update to the NooBaa system server.
 
+#### NamespaceStore access management
+
+By default, any BucketClass that is in the same namespace as the NamespaceStore can refer and use it. For the cases where NamespaceStore wants to explicitly allow access to BucketClasses in different namespaces, BackingStore can be provided a comma separated namespaces in `metadata.annotations.allowedNamespaces`.
+
+```yaml
+apiVersion: noobaa.io/v1alpha1
+kind: NamespaceStore
+metadata:
+  annotations:
+    allowedNamespaces: test
+  name: noobaa-test-namespace-store
+spec:
+  azureBlob:
+    secret:
+      name: namespace-store-azure-blob-bs
+      namespace: noobaa
+    targetBlobContainer: CONTAINER
+  type: azure-blob
+```
 
 # Read Status
 

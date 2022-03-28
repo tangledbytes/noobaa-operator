@@ -296,3 +296,25 @@ spec:
       resource: azure-blob-ns
   replicationPolicy: [{ "rule_id": "rule-1", "destination_bucket": "first.bucket", "filter": {"prefix": "ba"}}]
 ```
+
+BucketClass in namespace other than NooBaa System namespace:
+
+```shell
+TODO
+```
+
+```yaml
+apiVersion: noobaa.io/v1alpha1
+kind: BucketClass
+metadata:
+  labels:
+    provisioner: <TARGET-NOOBAA-SYSTEM-NAMESPACE>
+    app: noobaa
+  name: bc
+  namespace: noobaa
+spec:
+  placementPolicy:
+    tiers:
+    - backingStores:
+      - noobaa-test-backing-store
+```

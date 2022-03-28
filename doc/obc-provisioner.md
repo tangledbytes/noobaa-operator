@@ -78,6 +78,29 @@ spec:
     bucketclass: custom-bucket-class
 ```
 
+If the requested BucketClass is in namespace other than NooBaa system namespace then the BucketClass namespace can be specified via `spec.additionalConfig.bucketclassnamespace`.
+
+Example:
+
+```bash
+TODO
+```
+
+```yaml
+apiVersion: objectbucket.io/v1alpha1
+kind: ObjectBucketClaim
+metadata:
+  name: my-bucket-claim
+  namespace: my-app
+spec:
+  generateBucketName: my-bucket
+  storageClassName: noobaa.noobaa.io
+  additionalConfig:
+    bucketclass: custom-bucket-class
+    bucketclassNamespace: test # BucketClass will be searched in this Namespace
+```
+
+
 # OBC with specific Replication Policy
 
 Applications that require a bucket to have a specific replication policy can create an OBC and add to the claim 
