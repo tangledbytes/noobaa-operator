@@ -287,23 +287,11 @@ func NewBucketRequest(
 			)
 		}
 
-		bucketClassNamespace := r.OBC.Spec.AdditionalConfig["bucketclassNamespace"]
-		if bucketClassNamespace == "" {
-			bucketClassNamespace = bucketOptions.Parameters["bucketclassNamespace"]
-		}
-		if bucketClassNamespace == "" {
-			// If no bucketclassNamespace is provided then look for the bucketclass
-			// in the provisioner namespace
-			//
-			// This will make sure that this change is a backwards comaptible change
-			bucketClassNamespace = p.Namespace
-		}
-
 		r.BucketClass = &nbv1.BucketClass{
 			TypeMeta: metav1.TypeMeta{Kind: "BucketClass"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      bucketClassName,
-				Namespace: bucketClassNamespace,
+				Namespace: getBucketClassNamespace(r.OBC, bucketOptions, p.Namespace),
 			},
 		}
 		if !util.KubeCheck(r.BucketClass) {
@@ -346,16 +334,11 @@ func NewBucketRequest(
 		r.AccountName = ob.Spec.AdditionalState["account"]
 		bucketClassName := ob.Spec.AdditionalState["bucketclass"]
 
-		bucketClassNamespace := ob.Spec.AdditionalState["bucketclassNamespace"]
-		if bucketClassNamespace == "" {
-			bucketClassNamespace = p.Namespace
-		}
-
 		r.BucketClass = &nbv1.BucketClass{
 			TypeMeta: metav1.TypeMeta{Kind: "BucketClass"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      bucketClassName,
-				Namespace: bucketClassNamespace,
+				Namespace: getBucketClassNamespace(r.OBC, nil, p.Namespace),
 			},
 		}
 		if !util.KubeCheck(r.BucketClass) {
@@ -815,4 +798,18 @@ func (r *BucketRequest) updateReplicationPolicy(ob *nbv1.ObjectBucket) error {
 	}
 	log.Infof("updateReplicationPolicy: updated replication successfully")
 	return nil
+}
+
+func getBucketClassNamespace(ob *nbv1.ObjectBucketClaim, bucketOptions *obAPI.BucketOptions, provisionerNS string) string {
+	if ob != nil && ob.Spec.AdditionalConfig["bucketclassNamespace"] != "" {
+		return ob.Spec.AdditionalConfig["bucketclassNamespace"]
+	}
+
+	if bucketOptions != nil && bucketOptions.Parameters["bucketclassNamespace"] != "" {
+		return bucketOptions.Parameters["bucketclassNamespace"]
+	}
+
+	// If no annotations are identified then return the default namespace
+	// this is to ensure backwards compatibility of the change
+	return provisionerNS
 }
