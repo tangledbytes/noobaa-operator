@@ -63,8 +63,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 const (
@@ -1626,41 +1624,6 @@ func GetAvailabeKubeCli() string {
 		}
 	}
 	return kubeCommand
-}
-
-// IgnoreIfNotInNamespace returns a predicate function that ignores the object
-// if it is not in the given namespace
-func IgnoreIfNotInNamespace(ns string) *predicate.Funcs {
-	return &predicate.Funcs{
-		CreateFunc: func(ce event.CreateEvent) bool {
-			if ce.Object == nil {
-				return false
-			}
-
-			return ce.Object.GetNamespace() == ns
-		},
-		DeleteFunc: func(de event.DeleteEvent) bool {
-			if de.Object == nil {
-				return false
-			}
-
-			return de.Object.GetNamespace() == ns
-		},
-		UpdateFunc: func(ue event.UpdateEvent) bool {
-			if ue.ObjectNew == nil {
-				return false
-			}
-
-			return ue.ObjectNew.GetNamespace() == ns
-		},
-		GenericFunc: func(ge event.GenericEvent) bool {
-			if ge.Object == nil {
-				return false
-			}
-
-			return ge.Object.GetNamespace() == ns
-		},
-	}
 }
 
 // GetBackingStoreSecret returns the secret reference of the backing store if it is relevant to the type
