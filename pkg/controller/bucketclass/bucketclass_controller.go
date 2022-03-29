@@ -87,20 +87,23 @@ func Add(mgr manager.Manager) error {
 }
 
 func ignoreUnmatchedProvisioner(provisionerName string) predicate.Predicate {
-	provisionerLabel := "provisioner"
-
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			return e.Object.GetLabels()[provisionerLabel] == provisionerName || e.Object.GetNamespace() == options.Namespace
+			return isObjectForProvisioner(e.Object, provisionerName)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return e.Object.GetLabels()[provisionerLabel] == provisionerName || e.Object.GetNamespace() == options.Namespace
+			return isObjectForProvisioner(e.Object, provisionerName)
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return e.ObjectNew.GetLabels()[provisionerLabel] == provisionerName || e.ObjectNew.GetNamespace() == options.Namespace
+			return isObjectForProvisioner(e.ObjectNew, provisionerName)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return e.Object.GetLabels()[provisionerLabel] == provisionerName || e.Object.GetNamespace() == options.Namespace
+			return isObjectForProvisioner(e.Object, provisionerName)
 		},
 	}
+}
+
+func isObjectForProvisioner(obj client.Object, provisionerNamespace string) bool {
+	provisionerLabel := "provisioner"
+	return obj.GetLabels()[provisionerLabel] == provisionerNamespace || obj.GetNamespace() == provisionerNamespace
 }
