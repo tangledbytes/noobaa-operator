@@ -232,7 +232,7 @@ func (r *Reconciler) ReconcilePhaseVerifying() error {
 				if backStore.Status.Phase != nbv1.BackingStorePhaseReady {
 					return fmt.Errorf("NooBaa BackingStore %q is not yet ready", backingStoreName)
 				}
-				if !isBackingStoreCompatible(r.BucketClass, backStore) {
+				if !isStoreCompatible(r.BucketClass, backStore) {
 					return fmt.Errorf("NooBaa BackingStore %q is not compatible with %q", backingStoreName, r.BucketClass.Name)
 				}
 			}
@@ -260,7 +260,7 @@ func (r *Reconciler) ReconcilePhaseVerifying() error {
 			if nsStore.Status.Phase != nbv1.NamespaceStorePhaseReady {
 				return fmt.Errorf("NooBaa NamespaceStore %q is not yet ready", name)
 			}
-			if !isNamespaceStoreCompatible(r.BucketClass, nsStore) {
+			if !isStoreCompatible(r.BucketClass, nsStore) {
 				return fmt.Errorf("NooBaa NamespaceStore %q is not compatible with %q", name, r.BucketClass.Name)
 			}
 		}
@@ -453,14 +453,6 @@ func (r *Reconciler) UpdateBucketClass(bucketNames []string) error {
 
 	log.Infof("✅ Successfully updated bucket class %q", r.BucketClass.Name)
 	return nil
-}
-
-func isBackingStoreCompatible(bucketClass *nbv1.BucketClass, backingStore *nbv1.BackingStore) bool {
-	return isStoreCompatible(bucketClass, backingStore)
-}
-
-func isNamespaceStoreCompatible(bucketClass *nbv1.BucketClass, namespaceStore *nbv1.NamespaceStore) bool {
-	return isStoreCompatible(bucketClass, namespaceStore)
 }
 
 func isStoreCompatible(bucketClass *nbv1.BucketClass, obj client.Object) bool {
