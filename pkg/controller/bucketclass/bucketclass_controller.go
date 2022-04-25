@@ -86,19 +86,19 @@ func Add(mgr manager.Manager) error {
 	return nil
 }
 
-func ignoreUnmatchedProvisioner(provisionerName string) predicate.Predicate {
+func ignoreUnmatchedProvisioner(provisionerNamespace string) predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			return isObjectForProvisioner(e.Object, provisionerName)
+			return isObjectForProvisioner(e.Object, provisionerNamespace)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return isObjectForProvisioner(e.Object, provisionerName)
+			return isObjectForProvisioner(e.Object, provisionerNamespace)
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return isObjectForProvisioner(e.ObjectNew, provisionerName)
+			return isObjectForProvisioner(e.ObjectNew, provisionerNamespace)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return isObjectForProvisioner(e.Object, provisionerName)
+			return isObjectForProvisioner(e.Object, provisionerNamespace)
 		},
 	}
 }

@@ -233,7 +233,10 @@ func (r *Reconciler) ReconcilePhaseVerifying() error {
 					return fmt.Errorf("NooBaa BackingStore %q is not yet ready", backingStoreName)
 				}
 				if !isStoreCompatible(r.BucketClass, backStore) {
-					return fmt.Errorf("NooBaa BackingStore %q is not compatible with %q", backingStoreName, r.BucketClass.Name)
+					return util.NewPersistentError(
+						"IncompatibleBackingStore",
+						fmt.Sprintf("NooBaa BackingStore %q is not compatible with %q", backingStoreName, r.BucketClass.Name),
+					)
 				}
 			}
 		}
@@ -261,7 +264,10 @@ func (r *Reconciler) ReconcilePhaseVerifying() error {
 				return fmt.Errorf("NooBaa NamespaceStore %q is not yet ready", name)
 			}
 			if !isStoreCompatible(r.BucketClass, nsStore) {
-				return fmt.Errorf("NooBaa NamespaceStore %q is not compatible with %q", name, r.BucketClass.Name)
+				return util.NewPersistentError(
+					"IncompatibleNamespaceStore",
+					fmt.Sprintf("NooBaa NamespaceStore %q is not compatible with %q", name, r.BucketClass.Name),
+				)
 			}
 		}
 	}
