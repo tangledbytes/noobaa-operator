@@ -466,15 +466,10 @@ func isStoreCompatible(bucketClass *nbv1.BucketClass, obj client.Object) bool {
 		return true
 	}
 
+	var allowedNamespaces []string
 	if obj.GetAnnotations()["allowedNamespaces"] != "" {
-		allowedNamespaces := strings.Split(obj.GetAnnotations()["allowedNamespaces"], ",")
-
-		for _, allowedNamespace := range allowedNamespaces {
-			if bucketClass.GetNamespace() == strings.Trim(allowedNamespace, " ") {
-				return true
-			}
-		}
+		allowedNamespaces = strings.Split(obj.GetAnnotations()["allowedNamespaces"], ",")
 	}
 
-	return false
+	return util.Contains(bucketClass.GetNamespace(), allowedNamespaces)
 }

@@ -1312,6 +1312,7 @@ func WriteYamlFile(name string, obj runtime.Object, moreObjects ...runtime.Objec
 // Contains checks if string array arr contains string s
 func Contains(s string, arr []string) bool {
 	for _, b := range arr {
+		b = strings.TrimSpace(b)
 		if b == s {
 			return true
 		}
