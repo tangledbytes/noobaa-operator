@@ -1217,7 +1217,7 @@ spec:
       status: {}
 `
 
-const Sha256_deploy_crds_noobaa_io_noobaas_crd_yaml = "85f16eb011f71179da009e729a7e32ad8a886a092cc896d2869edd30c358ad97"
+const Sha256_deploy_crds_noobaa_io_noobaas_crd_yaml = "8b54bf712425e99e288c40417e1b7d722e86ba551e5d562210cd269215c0ac4a"
 
 const File_deploy_crds_noobaa_io_noobaas_crd_yaml = `apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -1567,7 +1567,7 @@ spec:
                                     field and the ones listed in the namespaces field.
                                     null selector and null or empty namespaces list
                                     means "this pod's namespace". An empty selector
-                                    ({}) matches all namespaces. This field is alpha-level
+                                    ({}) matches all namespaces. This field is beta-level
                                     and is only honored when PodAffinityNamespaceSelector
                                     feature is enabled.
                                   properties:
@@ -1723,7 +1723,7 @@ spec:
                                 the ones listed in the namespaces field. null selector
                                 and null or empty namespaces list means "this pod's
                                 namespace". An empty selector ({}) matches all namespaces.
-                                This field is alpha-level and is only honored when
+                                This field is beta-level and is only honored when
                                 PodAffinityNamespaceSelector feature is enabled.
                               properties:
                                 matchExpressions:
@@ -1876,7 +1876,7 @@ spec:
                                     field and the ones listed in the namespaces field.
                                     null selector and null or empty namespaces list
                                     means "this pod's namespace". An empty selector
-                                    ({}) matches all namespaces. This field is alpha-level
+                                    ({}) matches all namespaces. This field is beta-level
                                     and is only honored when PodAffinityNamespaceSelector
                                     feature is enabled.
                                   properties:
@@ -2032,7 +2032,7 @@ spec:
                                 the ones listed in the namespaces field. null selector
                                 and null or empty namespaces list means "this pod's
                                 namespace". An empty selector ({}) matches all namespaces.
-                                This field is alpha-level and is only honored when
+                                This field is beta-level and is only honored when
                                 PodAffinityNamespaceSelector feature is enabled.
                               properties:
                                 matchExpressions:
@@ -2928,7 +2928,6 @@ spec:
                 required:
                 - serviceMgmt
                 - serviceS3
-                - serviceSts
                 type: object
               upgradePhase:
                 description: Upgrade reports the status of the ongoing upgrade process
@@ -2986,7 +2985,7 @@ metadata:
 spec: {}
 `
 
-const Sha256_deploy_internal_admission_webhook_yaml = "0a6723515b4d26c49de29573430caad20ed4eb56b6860ee21d5f374f45b34876"
+const Sha256_deploy_internal_admission_webhook_yaml = "a9d71b881748ed66ec0447d16a41fc7004a3db0634e455f10e5ed41f4c010f47"
 
 const File_deploy_internal_admission_webhook_yaml = `apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -3020,6 +3019,13 @@ webhooks:
       - "UPDATE"
       resources:   
       - "noobaaaccounts"
+      scope: "Namespaced"
+    - apiGroups:   ["noobaa.io"]
+      apiVersions: ["v1alpha1"]
+      operations:  
+      - "DELETE"
+      resources:   
+      - "noobaas"
       scope: "Namespaced"
     sideEffects: None
     clientConfig:
