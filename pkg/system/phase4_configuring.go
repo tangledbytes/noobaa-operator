@@ -1540,7 +1540,7 @@ func (r *Reconciler) ReconcileNoobaaDeletionPolicy() error {
 
 	rule := GetNoobaaCRDeletionAdmissionRule()
 
-	if r.NooBaa.Spec.CleanupPolicy.AllowNoobaaDeletion {
+	if !r.NooBaa.Spec.CleanupPolicy.GuardNoobaaDeletion {
 		return RemoveRuleFromNoobaaAdmissionWebhook(rule)
 	}
 

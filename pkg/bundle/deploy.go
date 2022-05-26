@@ -1225,7 +1225,7 @@ spec:
       status: {}
 `
 
-const Sha256_deploy_crds_noobaa_io_noobaas_crd_yaml = "2b33414098bb5801ce4390ff74ebbe3ccb64ab9d4eebd42a042464b6c5ce4143"
+const Sha256_deploy_crds_noobaa_io_noobaas_crd_yaml = "c0bd00d7987fd2f78b3d783ab3be17004f21b69880648d6da70351695e039302"
 
 const File_deploy_crds_noobaa_io_noobaas_crd_yaml = `apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -2122,12 +2122,12 @@ spec:
                 description: CleanupPolicy (optional) Indicates user's policy for
                   deletion
                 properties:
-                  allowNoobaaDeletion:
-                    type: boolean
                   confirmation:
                     description: CleanupConfirmationProperty is a string that specifies
                       cleanup confirmation
                     type: string
+                  guardNoobaaDeletion:
+                    type: boolean
                 type: object
               coreResources:
                 description: CoreResources (optional) overrides the default resource
