@@ -345,14 +345,23 @@ func RunDelete(cmd *cobra.Command, args []string) {
 		}
 		util.KubeDelete(bstore, client.GracePeriodSeconds(0))
 	}
+	bucketClasses := &nbv1.BucketClassList{}
 	objectBucketClaims := &nbv1.ObjectBucketClaimList{}
 	configMaps := &corev1.ConfigMapList{}
 	secrets := &corev1.SecretList{}
 
+	util.KubeList(bucketClasses)
 	util.KubeList(objectBucketClaims, &client.ListOptions{LabelSelector: obcSelector})
 	util.KubeList(configMaps, &client.ListOptions{LabelSelector: obcSelector})
 	util.KubeList(secrets, &client.ListOptions{LabelSelector: obcSelector})
 
+	for _, bucketClass := range bucketClasses.Items {
+		if bucketClass.Labels["noobaa-operator"] == options.Namespace || bucketClass.Namespace == options.Namespace {
+			if !util.KubeDelete(&bucketClass) {
+				log.Errorf("❌ Failed to delete bucketclass %q", bucketClass.Name)
+			}
+		}
+	}
 	for i := range objectBucketClaims.Items {
 		obj := &objectBucketClaims.Items[i]
 		log.Warnf("ObjectBucketClaim %q removing without grace", obj.Name)

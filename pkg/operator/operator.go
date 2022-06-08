@@ -139,10 +139,6 @@ func RunInstall(cmd *cobra.Command, args []string) {
 				Name:  "NOOBAA_CLI_DEPLOYMENT",
 				Value: "true",
 			},
-			corev1.EnvVar{
-				Name:  "WATCH_NAMESPACE",
-				Value: options.WatchNamespace(),
-			},
 		)
 		c.Deployment.Spec.Template.Spec.Containers[0].Env = operatorContainer.Env
 		util.KubeCreateSkipExisting(c.Deployment)
@@ -482,29 +478,6 @@ func AdmissionWebhookSetup(c *Conf) {
 
 func configureClusterRole(cr *rbacv1.ClusterRole) {
 	cr.Name = options.SubDomainNS()
-
-	// If operator is deployed in "AllNamespace" mode then operator
-	// needs cluster wide access to multiple resources
-	if options.WatchNamespace() == "" {
-		cr.Rules = append(
-			cr.Rules,
-			rbacv1.PolicyRule{
-				APIGroups: []string{""},
-				Resources: []string{"pods", "services", "persistentvolumeclaims", "serviceaccounts"},
-				Verbs:     []string{"*"},
-			},
-			rbacv1.PolicyRule{
-				APIGroups: []string{"apps"},
-				Resources: []string{"deployments", "statefulsets"},
-				Verbs:     []string{"*"},
-			},
-			rbacv1.PolicyRule{
-				APIGroups: []string{"autoscaling"},
-				Resources: []string{"horizontalpodautoscalers"},
-				Verbs:     []string{"*"},
-			},
-		)
-	}
 }
 
 // RemoveRuleFromNoobaaAdmissionWebhook removes the rule from the noobaa internal admission webhook

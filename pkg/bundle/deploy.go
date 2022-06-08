@@ -2,7 +2,7 @@ package bundle
 
 const Version = "5.10.0"
 
-const Sha256_deploy_cluster_role_yaml = "b3be23b51cbfad068dcf49bffa5f6af04c99dfc9623e2656f872e5f0643a8aeb"
+const Sha256_deploy_cluster_role_yaml = "2a700d37829941e0d07d4272910a212215a2334dc764a29d41a7ee1397736148"
 
 const File_deploy_cluster_role_yaml = `apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -72,7 +72,28 @@ rules:
       - subjectaccessreviews
     verbs:
       - create
-`
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - services
+      - persistentvolumeclaims
+      - serviceaccounts
+    verbs:
+      - "*"
+  - apiGroups:
+      - "apps"
+    resources:
+      - deployments
+      - statefulsets
+    verbs:
+      - "*"
+  - apiGroups:
+      - "autoscaling"
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - "*"`
 
 const Sha256_deploy_cluster_role_binding_yaml = "15c78355aefdceaf577bd96b4ae949ae424a3febdc8853be0917cf89a63941fc"
 
@@ -5009,7 +5030,7 @@ spec:
   sourceNamespace: default
 `
 
-const Sha256_deploy_operator_yaml = "2870838f688bf1691d85c64dc5e302eb6575996427c7cfdb7143f322ff0dbd18"
+const Sha256_deploy_operator_yaml = "d8ea8f13bd400b60628bf5ec43343ad68950ae36e330a646a97e149fda44f7e5"
 
 const File_deploy_operator_yaml = `apiVersion: apps/v1
 kind: Deployment
@@ -5053,10 +5074,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: WATCH_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-`
+              value: ""`
 
 const Sha256_deploy_role_yaml = "eb0941a5e095fa7ac391e05782e6847e419e4d0dc17f6d8151df0032c977c743"
 

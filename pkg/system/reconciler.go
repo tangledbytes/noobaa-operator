@@ -338,6 +338,10 @@ func (r *Reconciler) Reconcile() (reconcile.Result, error) {
 			if err = r.deleteRootSecret(); err != nil {
 				log.Warnf("⏳ Temporary Error: %s", err)
 			}
+			if err = r.deleteOwnedBucketClasses(); err != nil {
+				r.SetPhase("", "TemporaryError", err.Error())
+				log.Warnf("⏳ Temporary Error: %s", err)
+			}
 			// obc and storage class removal
 			if err = r.VerifyObjectBucketCleanup(); err != nil {
 				r.SetPhase("", "TemporaryError", err.Error())
@@ -411,6 +415,29 @@ func (r *Reconciler) Reconcile() (reconcile.Result, error) {
 		log.Warnf("⏳ Temporary Error: %s", err)
 	}
 	return res, nil
+}
+
+// deleteOwnedBucketClasses deletes all of the bucketclass resources which have "noobaa-operator" label set to the
+// the system namespace
+//
+// NOTE: This attempts replicate cross namespace ownerReferences
+func (r *Reconciler) deleteOwnedBucketClasses() error {
+	r.Logger.Infof("Deleting BucketClasses")
+
+	bucketClassList := &nbv1.BucketClassList{}
+	if !util.KubeList(bucketClassList) {
+		return fmt.Errorf("❌ Failed to list bucketclasses")
+	}
+
+	for _, bucketClass := range bucketClassList.Items {
+		if bucketClass.Labels["noobaa-operator"] == options.Namespace || bucketClass.Namespace == options.Namespace {
+			if !util.KubeDelete(&bucketClass) {
+				return fmt.Errorf("❌ Failed to delete bucketclass %q", bucketClass.Name)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (r *Reconciler) deleteRootSecret() error {

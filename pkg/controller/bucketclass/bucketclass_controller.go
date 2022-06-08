@@ -86,24 +86,24 @@ func Add(mgr manager.Manager) error {
 	return nil
 }
 
-func ignoreUnmatchedProvisioner(provisionerNamespace string) predicate.Predicate {
+func ignoreUnmatchedProvisioner(noobaaOperatorNamespace string) predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			return isObjectForProvisioner(e.Object, provisionerNamespace)
+			return isObjectForProvisioner(e.Object, noobaaOperatorNamespace)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return isObjectForProvisioner(e.Object, provisionerNamespace)
+			return isObjectForProvisioner(e.Object, noobaaOperatorNamespace)
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return isObjectForProvisioner(e.ObjectNew, provisionerNamespace)
+			return isObjectForProvisioner(e.ObjectNew, noobaaOperatorNamespace)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return isObjectForProvisioner(e.Object, provisionerNamespace)
+			return isObjectForProvisioner(e.Object, noobaaOperatorNamespace)
 		},
 	}
 }
 
-func isObjectForProvisioner(obj client.Object, provisionerNamespace string) bool {
-	provisionerLabel := "provisioner"
-	return obj.GetLabels()[provisionerLabel] == provisionerNamespace || obj.GetNamespace() == provisionerNamespace
+func isObjectForProvisioner(obj client.Object, noobaaOperatorNamespace string) bool {
+	noobaaOperatorLabel := "noobaa-operator"
+	return obj.GetLabels()[noobaaOperatorLabel] == noobaaOperatorNamespace || obj.GetNamespace() == noobaaOperatorNamespace
 }
