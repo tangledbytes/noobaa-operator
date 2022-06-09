@@ -44,7 +44,7 @@ var _ = Describe("Verify Bucketclass provisioner actions", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "random",
 					Labels: map[string]string{
-						"provisioner": systemNS,
+						"noobaa-operator": systemNS,
 					},
 				},
 			}
@@ -59,7 +59,7 @@ var _ = Describe("Verify Bucketclass provisioner actions", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "random",
 					Labels: map[string]string{
-						"provisioner": "xyz",
+						"noobaa-operator": "xyz",
 					},
 				},
 			}
