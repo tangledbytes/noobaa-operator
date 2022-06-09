@@ -113,12 +113,15 @@ var (
 	}
 
 	// MapStorTypeToMandatoryProperties holds a map of store type -> credentials mandatory properties
-	MapStorTypeToMandatoryProperties = map[nbv1.StoreType][]string{
-		nbv1.StoreTypeAWSS3:              {"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"},
-		nbv1.StoreTypeS3Compatible:       {"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"},
-		nbv1.StoreTypeIBMCos:             {"IBM_COS_ACCESS_KEY_ID", "IBM_COS_SECRET_ACCESS_KEY"},
-		nbv1.StoreTypeGoogleCloudStorage: {"GoogleServiceAccountPrivateKeyJson"},
-		nbv1.StoreTypeAzureBlob:          {"AccountName", "AccountKey"},
+	// note that this map holds the mandatory properties for both backingstores and namespacestores
+	MapStorTypeToMandatoryProperties = map[string][]string{
+		"aws-s3":               {"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"},         // backingstores and namespacestores
+		"s3-compatible":        {"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"},         // backingstores and namespacestores
+		"ibm-cos":              {"IBM_COS_ACCESS_KEY_ID", "IBM_COS_SECRET_ACCESS_KEY"}, // backingstores and namespacestores
+		"google-cloud-storage": {"GoogleServiceAccountPrivateKeyJson"},                 // backingstores
+		"azure-blob":           {"AccountName", "AccountKey"},                          // backingstores and namespacestores
+		"pv-pool":              {},                                                     // backingstores
+		"nsfs":                 {},                                                     // namespacestores
 	}
 )
 
@@ -1006,13 +1009,25 @@ func IsSTSClusterBS(bs *nbv1.BackingStore) bool {
 	return false
 }
 
-// IsAzurePlatform returns true if this cluster is running on Azure
-func IsAzurePlatform() bool {
+// IsAzurePlatformNonGovernment returns true if this cluster is running on Azure and also not on azure government\DOD cloud
+func IsAzurePlatformNonGovernment() bool {
 	nodesList := &corev1.NodeList{}
 	if ok := KubeList(nodesList); !ok || len(nodesList.Items) == 0 {
 		Panic(fmt.Errorf("failed to list kubernetes nodes"))
 	}
-	isAzure := strings.HasPrefix(nodesList.Items[0].Spec.ProviderID, "azure")
+	const regionLabel string = "topology.kubernetes.io/region"
+	node := nodesList.Items[0]
+	isAzure := strings.HasPrefix(node.Spec.ProviderID, "azure")
+	if isAzure {
+		nodeLabels := node.GetLabels()
+		region, ok := nodeLabels[regionLabel]
+		if !ok {
+			log.Warnf("did not find the expected label %q on node %q to determine azure region", regionLabel, node.Name)
+		} else if strings.HasPrefix(region, "usgov") || strings.HasPrefix(region, "usdod") {
+			log.Infof("identified the region [%q] as an Azure gov/DOD region", region)
+			return false
+		}
+	}
 	return isAzure
 }
 
@@ -1516,7 +1531,7 @@ func LoadBucketReplicationJSON(replicationJSONFilePath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Failed to read file %q: %v", replicationJSONFilePath, err)
 	}
-	var replicationJSON []interface{}
+	var replicationJSON interface{}
 	err = json.Unmarshal(bytes, &replicationJSON)
 	if err != nil {
 		return "", fmt.Errorf("Failed to parse json file %q: %v", replicationJSONFilePath, err)
@@ -1627,24 +1642,38 @@ func GetAvailabeKubeCli() string {
 	return kubeCommand
 }
 
-// GetBackingStoreSecret returns the secret reference of the backing store if it is relevant to the type
-func GetBackingStoreSecret(bs *nbv1.BackingStore) (*corev1.SecretReference, error) {
+// GetBackingStoreSecretByType returns the secret reference of the backing store if it is relevant to the type
+func GetBackingStoreSecretByType(bs *nbv1.BackingStore) (*corev1.SecretReference, error) {
+	var secretRef corev1.SecretReference
 	switch bs.Spec.Type {
 	case nbv1.StoreTypeAWSS3:
-		return &bs.Spec.AWSS3.Secret, nil
+		secretRef = bs.Spec.AWSS3.Secret
 	case nbv1.StoreTypeS3Compatible:
-		return &bs.Spec.S3Compatible.Secret, nil
+		secretRef = bs.Spec.S3Compatible.Secret
 	case nbv1.StoreTypeIBMCos:
-		return &bs.Spec.IBMCos.Secret, nil
+		secretRef = bs.Spec.IBMCos.Secret
 	case nbv1.StoreTypeAzureBlob:
-		return &bs.Spec.AzureBlob.Secret, nil
+		secretRef = bs.Spec.AzureBlob.Secret
 	case nbv1.StoreTypeGoogleCloudStorage:
-		return &bs.Spec.GoogleCloudStorage.Secret, nil
+		secretRef = bs.Spec.GoogleCloudStorage.Secret
 	case nbv1.StoreTypePVPool:
-		return &bs.Spec.PVPool.Secret, nil
+		secretRef = bs.Spec.PVPool.Secret
 	default:
 		return nil, fmt.Errorf("failed to get secret reference from backingstore %q", bs.Name)
 	}
+	return &secretRef, nil
+}
+
+// GetBackingStoreSecret returns the secret and adding the namespace if it is missing
+func GetBackingStoreSecret(bs *nbv1.BackingStore) (*corev1.SecretReference, error) {
+	secretRef, err := GetBackingStoreSecretByType(bs)
+	if err != nil {
+		return nil, err
+	}
+	if secretRef.Namespace == "" {
+		secretRef.Namespace = bs.Namespace
+	}
+	return secretRef, nil
 }
 
 // SetBackingStoreSecretRef setting a backingstore secret reference to the provided one
@@ -1693,22 +1722,37 @@ func GetBackingStoreTargetBucket(bs *nbv1.BackingStore) (string, error) {
 	}
 }
 
-// GetNamespaceStoreSecret returns the secret reference of the namespace store if it is relevant to the type
-func GetNamespaceStoreSecret(ns *nbv1.NamespaceStore) (*corev1.SecretReference, error) {
+// GetNamespaceStoreSecretByType returns the secret reference of the namespace store if it is relevant to the type
+func GetNamespaceStoreSecretByType(ns *nbv1.NamespaceStore) (*corev1.SecretReference, error) {
+	var secretRef corev1.SecretReference
 	switch ns.Spec.Type {
 	case nbv1.NSStoreTypeAWSS3:
-		return &ns.Spec.AWSS3.Secret, nil
+		secretRef = ns.Spec.AWSS3.Secret
 	case nbv1.NSStoreTypeS3Compatible:
-		return &ns.Spec.S3Compatible.Secret, nil
+		secretRef = ns.Spec.S3Compatible.Secret
 	case nbv1.NSStoreTypeIBMCos:
-		return &ns.Spec.IBMCos.Secret, nil
+		secretRef = ns.Spec.IBMCos.Secret
 	case nbv1.NSStoreTypeAzureBlob:
-		return &ns.Spec.AzureBlob.Secret, nil
+		secretRef = ns.Spec.AzureBlob.Secret
 	case nbv1.NSStoreTypeNSFS:
 		return nil, nil
 	default:
 		return nil, fmt.Errorf("failed to get namespacestore %q secret", ns.Name)
 	}
+
+	return &secretRef, nil
+}
+
+// GetNamespaceStoreSecret returns the secret and adding the namespace if it is missing
+func GetNamespaceStoreSecret(ns *nbv1.NamespaceStore) (*corev1.SecretReference, error) {
+	secretRef, err := GetNamespaceStoreSecretByType(ns)
+	if err != nil {
+		return nil, err
+	}
+	if secretRef != nil && secretRef.Namespace == "" {
+		secretRef.Namespace = ns.Namespace
+	}
+	return secretRef, nil
 }
 
 // SetNamespaceStoreSecretRef setting a namespacestore secret reference to the provided one
@@ -1772,8 +1816,12 @@ func GetSecretFromSecretReference(secretRef *corev1.SecretReference) (*corev1.Se
 
 // CheckForIdenticalSecretsCreds search and returns a secret name with identical credentials in the provided secret
 // the credentials to compare stored in mandatoryProp
-func CheckForIdenticalSecretsCreds(secret *corev1.Secret, mandatoryProp []string) *corev1.Secret {
-	if secret == nil {
+func CheckForIdenticalSecretsCreds(secret *corev1.Secret, storeTypeStr string) *corev1.Secret {
+	mandatoryProp, ok := MapStorTypeToMandatoryProperties[storeTypeStr]
+	if !ok {
+		log.Errorf("❌  failed to map store type %q to mandatory properties", storeTypeStr)
+	}
+	if secret == nil || len(mandatoryProp) == 0 {
 		return nil
 	}
 	nsList := &nbv1.NamespaceStoreList{
@@ -1796,7 +1844,7 @@ func CheckForIdenticalSecretsCreds(secret *corev1.Secret, mandatoryProp []string
 				if err != nil {
 					log.Errorf("%s", err)
 				}
-				if usedSecret != nil && usedSecret.Name != secret.Name {
+				if usedSecret != nil && usedSecret.Name != secret.Name && string(bs.Spec.Type) == storeTypeStr {
 					found := true
 					for _, key := range mandatoryProp {
 						found = found && usedSecret.StringData[key] == secret.StringData[key]
@@ -1820,7 +1868,7 @@ func CheckForIdenticalSecretsCreds(secret *corev1.Secret, mandatoryProp []string
 				if err != nil {
 					log.Errorf("%s", err)
 				}
-				if usedSecret != nil && usedSecret.Name != secret.Name {
+				if usedSecret != nil && usedSecret.Name != secret.Name && string(ns.Spec.Type) == storeTypeStr {
 					found := true
 					for _, key := range mandatoryProp {
 						found = found && usedSecret.StringData[key] == secret.StringData[key]
@@ -1911,4 +1959,14 @@ func referSameObject(a, b metav1.OwnerReference) bool {
 	}
 
 	return aGV.Group == bGV.Group && a.Kind == b.Kind && a.Name == b.Name
+}
+
+// IsOwnedByNoobaa receives an array of owner references and returns true if one of them is of a noobaa resource
+func IsOwnedByNoobaa(ownerReferences []metav1.OwnerReference) bool {
+	for _, ownerRef := range ownerReferences {
+		if strings.Contains(ownerRef.APIVersion, "noobaa") {
+			return true
+		}
+	}
+	return false
 }

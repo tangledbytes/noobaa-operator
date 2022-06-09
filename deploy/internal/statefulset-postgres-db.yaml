@@ -18,7 +18,7 @@ spec:
         app: noobaa
         noobaa-db: postgres
     spec:
-      serviceAccountName: noobaa-endpoint
+      serviceAccountName: noobaa-db
       initContainers:
       #-----------------#
       # INIT CONTAINERS #
@@ -43,6 +43,8 @@ spec:
         env:
           - name: POSTGRESQL_DATABASE
             value: nbcore
+          - name: LC_COLLATE
+            value: C
           - name: POSTGRESQL_USER
             valueFrom:
               secretKeyRef:
@@ -81,6 +83,8 @@ spec:
         env:
           - name: POSTGRESQL_DATABASE
             value: nbcore
+          - name: LC_COLLATE
+            value: C
           - name: POSTGRESQL_USER
             valueFrom:
               secretKeyRef:

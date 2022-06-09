@@ -683,8 +683,7 @@ function account_regenerate_keys {
 
 function account_reset_password {
     local account=${1}
-    local password
-    eval $(get_admin_password)
+    local password=$(get_admin_password)
     #reset password should work
     test_noobaa account passwd ${account} --old-password ${password} --new-password "test" --retype-new-password "test"
     # Should fail if the old password is not correct
@@ -701,7 +700,7 @@ function get_admin_password {
     do
         if [[ ${line} =~ "password" ]]
         then
-            password=$(echo ${line//\"/} | sed -e 's/ //g' -e 's/:/=/g')
+            password=$(echo ${line//\"/} | awk -F ":" '{print $2}')
         fi
     done < <(yes | test_noobaa status)
     echo ${password}
@@ -899,8 +898,8 @@ fi
 
 
 function create_replication_files {
-    echo "[{ \"rule_id\": \"rule-1\", \"destination_bucket\": \"first.bucket\", \"filter\": {\"prefix\": \"d\"}} ]" > replication1.json
-    echo "[{ \"rule_id\": \"rule-2\", \"destination_bucket\": \"first.bucket\", \"filter\": {\"prefix\": \"e\"}} ]" > replication2.json
+    echo "{\"rules\":[{ \"rule_id\": \"rule-1\", \"destination_bucket\": \"first.bucket\", \"filter\": {\"prefix\": \"d\"}} ]}" > replication1.json
+    echo "{\"rules\":[{ \"rule_id\": \"rule-2\", \"destination_bucket\": \"first.bucket\", \"filter\": {\"prefix\": \"e\"}} ]}" > replication2.json
 }
 
 function delete_replication_files {
@@ -966,7 +965,7 @@ function test_noobaa_cr_deletion() {
     resp=$(kubectl -n ${NAMESPACE} delete noobaas.noobaa.io noobaa 2>&1 >/dev/null)
     if [ $? -ne 0 ]; then
         echo $resp
-        if [[ $resp == *"Deletion of NooBaa resource is prohibited"* ]]; then
+        if [[ $resp == *"Noobaa cleanup policy is not set, blocking Noobaa deletion"* ]]; then
             echo_time "✅  Noobaa CR deletion test passed"
         else
             echo_time "❌  Noobaa CR deletion test failed"

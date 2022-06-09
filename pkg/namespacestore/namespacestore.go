@@ -279,7 +279,7 @@ func createCommon(cmd *cobra.Command, args []string, storeType nbv1.NSType, popu
 
 	populate(namespaceStore, secret)
 
-	suggestedSecret := util.CheckForIdenticalSecretsCreds(secret, util.MapStorTypeToMandatoryProperties[nbv1.StoreType(namespaceStore.Spec.Type)])
+	suggestedSecret := util.CheckForIdenticalSecretsCreds(secret, string(nbv1.StoreType(namespaceStore.Spec.Type)))
 	if suggestedSecret != nil {
 		var decision string
 		log.Printf("Found a Secret in the system with the same credentials (%s)", suggestedSecret.Name)
@@ -704,7 +704,10 @@ func MapSecretToNamespaceStores(secret types.NamespacedName) []reconcile.Request
 
 	for _, ns := range nsList.Items {
 		nsSecret, err := util.GetNamespaceStoreSecret(&ns)
-		if nsSecret.Name == secret.Name && err != nil {
+		if err != nil {
+			log.Errorf(err.Error())
+		}
+		if nsSecret != nil && nsSecret.Name == secret.Name {
 			reqs = append(reqs, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      ns.Name,

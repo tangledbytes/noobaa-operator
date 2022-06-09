@@ -1,6 +1,6 @@
 package bundle
 
-const Version = "5.10.0"
+const Version = "5.12.0"
 
 const Sha256_deploy_cluster_role_yaml = "2a700d37829941e0d07d4272910a212215a2334dc764a29d41a7ee1397736148"
 
@@ -93,7 +93,22 @@ rules:
     resources:
       - horizontalpodautoscalers
     verbs:
-      - "*"`
+      - "*"
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - validatingwebhookconfigurations
+    verbs:
+      - get
+      - update
+      - list
+  - apiGroups:
+      - security.openshift.io
+    resources:
+      - securitycontextconstraints
+    verbs:
+      - '*'
+`
 
 const Sha256_deploy_cluster_role_binding_yaml = "15c78355aefdceaf577bd96b4ae949ae424a3febdc8853be0917cf89a63941fc"
 
@@ -1238,7 +1253,7 @@ spec:
       status: {}
 `
 
-const Sha256_deploy_crds_noobaa_io_noobaas_crd_yaml = "8b54bf712425e99e288c40417e1b7d722e86ba551e5d562210cd269215c0ac4a"
+const Sha256_deploy_crds_noobaa_io_noobaas_crd_yaml = "2b33414098bb5801ce4390ff74ebbe3ccb64ab9d4eebd42a042464b6c5ce4143"
 
 const File_deploy_crds_noobaa_io_noobaas_crd_yaml = `apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -1256,10 +1271,6 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - description: Management Endpoints
-      jsonPath: .status.services.serviceMgmt.nodePorts
-      name: Mgmt-Endpoints
-      type: string
     - description: S3 Endpoints
       jsonPath: .status.services.serviceS3.nodePorts
       name: S3-Endpoints
@@ -2139,6 +2150,8 @@ spec:
                 description: CleanupPolicy (optional) Indicates user's policy for
                   deletion
                 properties:
+                  allowNoobaaDeletion:
+                    type: boolean
                   confirmation:
                     description: CleanupConfirmationProperty is a string that specifies
                       cleanup confirmation
@@ -4049,7 +4062,7 @@ spec:
                   resource: limits.memory
 `
 
-const Sha256_deploy_internal_statefulset_db_yaml = "3de515b92c4892045b4e9c0ad8d0b69eaf198b7708818cd9e58c5e4cb53e2073"
+const Sha256_deploy_internal_statefulset_db_yaml = "b6039d7ba3604deb54fdf6c48a7df758e1768e1af294ea21d0988cf30103c1c4"
 
 const File_deploy_internal_statefulset_db_yaml = `apiVersion: apps/v1
 kind: StatefulSet
@@ -4071,7 +4084,7 @@ spec:
         app: noobaa
         noobaa-db: noobaa
     spec:
-      serviceAccountName: noobaa-endpoint
+      serviceAccountName: noobaa-db
       terminationGracePeriodSeconds: 60
       initContainers:
       #----------------#
@@ -4128,7 +4141,7 @@ spec:
           storage: 50Gi
 `
 
-const Sha256_deploy_internal_statefulset_postgres_db_yaml = "2cd6f3fdb0087481d8d692dece6f68e5d75fd4f46233db7b1e37c1c3665233c7"
+const Sha256_deploy_internal_statefulset_postgres_db_yaml = "98abe98cd3089424ef5a7dcebd973b1c307f879d434872029b58c0be392b2756"
 
 const File_deploy_internal_statefulset_postgres_db_yaml = `apiVersion: apps/v1
 kind: StatefulSet
@@ -4150,7 +4163,7 @@ spec:
         app: noobaa
         noobaa-db: postgres
     spec:
-      serviceAccountName: noobaa-endpoint
+      serviceAccountName: noobaa-db
       initContainers:
       #-----------------#
       # INIT CONTAINERS #
@@ -4175,6 +4188,8 @@ spec:
         env:
           - name: POSTGRESQL_DATABASE
             value: nbcore
+          - name: LC_COLLATE
+            value: C
           - name: POSTGRESQL_USER
             valueFrom:
               secretKeyRef:
@@ -4213,6 +4228,8 @@ spec:
         env:
           - name: POSTGRESQL_DATABASE
             value: nbcore
+          - name: LC_COLLATE
+            value: C
           - name: POSTGRESQL_USER
             valueFrom:
               secretKeyRef:
@@ -4282,7 +4299,7 @@ const File_deploy_internal_text_system_status_readme_progress_tmpl = `
 	NooBaa Operator Version: {{.OperatorVersion}}
 `
 
-const Sha256_deploy_internal_text_system_status_readme_ready_tmpl = "ed4077141304bbf69b08401f314b70c381523c60a7e18211576ba5275a286c30"
+const Sha256_deploy_internal_text_system_status_readme_ready_tmpl = "224e606bf5eee299b2b2070a193a6579f9cb685e78e47d7b92fe9714c9eee63f"
 
 const File_deploy_internal_text_system_status_readme_ready_tmpl = `
 
@@ -4293,18 +4310,7 @@ const File_deploy_internal_text_system_status_readme_ready_tmpl = `
 
 	Lets get started:
 
-	1. Connect to Management console:
-
-		Read your mgmt console login information (email & password) from secret: "{{.SecretAdmin.Name}}".
-
-			kubectl get secret {{.SecretAdmin.Name}} -n {{.SecretAdmin.Namespace}} -o json | jq '.data|map_values(@base64d)'
-
-		Open the management console service - take External IP/DNS or Node Port or use port forwarding:
-
-			kubectl port-forward -n {{.ServiceMgmt.Namespace}} service/{{.ServiceMgmt.Name}} 11443:443 &
-			open https://localhost:11443
-
-	2. Test S3 client:
+	Test S3 client:
 
 		kubectl port-forward -n {{.ServiceS3.Namespace}} service/{{.ServiceS3.Name}} 10443:443 &
 		NOOBAA_ACCESS_KEY=$(kubectl get secret {{.SecretAdmin.Name}} -n {{.SecretAdmin.Namespace}} -o json | jq -r '.data.AWS_ACCESS_KEY_ID|@base64d')
@@ -5076,7 +5082,7 @@ spec:
             - name: WATCH_NAMESPACE
               value: ""`
 
-const Sha256_deploy_role_yaml = "eb0941a5e095fa7ac391e05782e6847e419e4d0dc17f6d8151df0032c977c743"
+const Sha256_deploy_role_yaml = "99798a1daa31e0f0546dbea3ba11411f0298051c64c401c9f168120ef2a9ef46"
 
 const File_deploy_role_yaml = `apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -5087,12 +5093,6 @@ rules:
   - noobaa.io
   resources:
   - '*'
-  - noobaas
-  - backingstores
-  - bucketclasses
-  - noobaas/finalizers
-  - backingstores/finalizers
-  - bucketclasses/finalizers
   verbs:
   - '*'
 - apiGroups:
@@ -5212,13 +5212,11 @@ rules:
   - watch
   - delete
 - apiGroups:
-  - security.openshift.io 
-  resourceNames:
-  - noobaa 
+  - rbac.authorization.k8s.io
   resources:
-  - securitycontextconstraints 
+  - '*'
   verbs: 
-  - use
+  - '*'
 `
 
 const Sha256_deploy_role_binding_yaml = "59a2627156ed3db9cd1a4d9c47e8c1044279c65e84d79c525e51274329cb16ff"
@@ -5236,6 +5234,21 @@ roleRef:
   name: noobaa
 `
 
+const Sha256_deploy_role_binding_db_yaml = "3a4872fcde50e692ae52bbd208a8e1d115c574431c25a9644a7c820ae13c7748"
+
+const File_deploy_role_binding_db_yaml = `apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: noobaa-db
+subjects:
+  - kind: ServiceAccount
+    name: noobaa-db
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: noobaa-db
+`
+
 const Sha256_deploy_role_binding_endpoint_yaml = "ab85a33434b0a5fb685fb4983a9d97313e277a5ec8a2142e49c276d51b8ba0e9"
 
 const File_deploy_role_binding_endpoint_yaml = `apiVersion: rbac.authorization.k8s.io/v1
@@ -5249,6 +5262,23 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: noobaa-endpoint
+`
+
+const Sha256_deploy_role_db_yaml = "8a7b6895de2e9847ec4a9e6e298b63251253f446961eb97f4dee50ee156f6d12"
+
+const File_deploy_role_db_yaml = `apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: noobaa-db
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - noobaa-db
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
 `
 
 const Sha256_deploy_role_endpoint_yaml = "27ace6cdcae4d87add5ae79265c4eee9d247e5910fc8a74368139d31add6dac2"
@@ -5320,49 +5350,34 @@ rules:
       - bucketclasses
 `
 
-const Sha256_deploy_scc_yaml = "cbb071961f7dd77e5bdca7e36b89e1e1982265c4e7dc95f00109d0acc64a3c06"
+const Sha256_deploy_scc_db_yaml = "49d970f874b9f458e286badddd46d772bbf8270b4d28a7c02002f1eef4d226be"
 
-const File_deploy_scc_yaml = `apiVersion: security.openshift.io/v1
+const File_deploy_scc_db_yaml = `apiVersion: security.openshift.io/v1
 kind: SecurityContextConstraints
 metadata:
-  name: noobaa
+  name: noobaa-db
+allowPrivilegeEscalation: true
 allowHostDirVolumePlugin: false
 allowHostIPC: false
 allowHostNetwork: false
 allowHostPID: false
 allowHostPorts: false
-allowPrivilegeEscalation: true
 allowPrivilegedContainer: false
-allowedCapabilities: []
-defaultAddCapabilities: []
-fsGroup:
-  type: MustRunAs
-groups: []
-priority: null
 readOnlyRootFilesystem: false
-requiredDropCapabilities:
-- KILL
-- MKNOD
+allowedCapabilities:
 - SETUID
 - SETGID
+fsGroup:
+  type: MustRunAs
 runAsUser:
   type: RunAsAny
 seLinuxContext:
   type: MustRunAs
 supplementalGroups:
   type: RunAsAny
-users:
-- system:serviceaccount:openshift-storage:noobaa
-volumes:
-- configMap
-- downwardAPI
-- emptyDir
-- persistentVolumeClaim
-- projected
-- secret
 `
 
-const Sha256_deploy_scc_endpoint_yaml = "27642f221c6289dff59734f9368aa5dcb3b10fe6c98de8aba2bfb71807c30c66"
+const Sha256_deploy_scc_endpoint_yaml = "f097a29eb11230a7612ab5f86894da523a743093e21eb2217a39332c5a31b10c"
 
 const File_deploy_scc_endpoint_yaml = `apiVersion: security.openshift.io/v1
 kind: SecurityContextConstraints
@@ -5393,8 +5408,6 @@ seLinuxContext:
   type: RunAsAny
 supplementalGroups:
   type: RunAsAny
-users:
-- system:serviceaccount:openshift-storage:noobaa-endpoint
 volumes:
 - configMap
 - downwardAPI
@@ -5414,6 +5427,14 @@ metadata:
     serviceaccounts.openshift.io/oauth-redirectreference.noobaa-mgmt: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"noobaa-mgmt"}}'
 `
 
+const Sha256_deploy_service_account_db_yaml = "fcbccd7518ee5a426b071a3acc85d22142e27c5628b61ce4292cc393d2ecac31"
+
+const File_deploy_service_account_db_yaml = `apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: noobaa-db
+`
+
 const Sha256_deploy_service_account_endpoint_yaml = "c2331e027114658e48a2bd1139b00cce06dfd834aa682eae923de54874a6baed"
 
 const File_deploy_service_account_endpoint_yaml = `apiVersion: v1
@@ -5429,4 +5450,3 @@ kind: ServiceAccount
 metadata:
   name: noobaa-odf-ui
 `
-

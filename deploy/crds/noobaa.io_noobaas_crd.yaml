@@ -14,10 +14,6 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - description: Management Endpoints
-      jsonPath: .status.services.serviceMgmt.nodePorts
-      name: Mgmt-Endpoints
-      type: string
     - description: S3 Endpoints
       jsonPath: .status.services.serviceS3.nodePorts
       name: S3-Endpoints
@@ -897,6 +893,8 @@ spec:
                 description: CleanupPolicy (optional) Indicates user's policy for
                   deletion
                 properties:
+                  allowNoobaaDeletion:
+                    type: boolean
                   confirmation:
                     description: CleanupConfirmationProperty is a string that specifies
                       cleanup confirmation

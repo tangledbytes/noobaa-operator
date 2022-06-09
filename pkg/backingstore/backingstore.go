@@ -369,7 +369,7 @@ func createCommon(cmd *cobra.Command, args []string, storeType nbv1.StoreType, p
 		log.Fatalf(`❌ %s %s`, validationErr, cmd.UsageString())
 	}
 
-	suggestedSecret := util.CheckForIdenticalSecretsCreds(secret, util.MapStorTypeToMandatoryProperties[storeType])
+	suggestedSecret := util.CheckForIdenticalSecretsCreds(secret, string(storeType))
 	if suggestedSecret != nil {
 		var decision string
 		log.Printf("Found a Secret in the system with the same credentials (%s)", suggestedSecret.Name)
@@ -1038,7 +1038,10 @@ func MapSecretToBackingStores(secret types.NamespacedName) []reconcile.Request {
 
 	for _, bs := range bsList.Items {
 		bsSecret, err := util.GetBackingStoreSecret(&bs)
-		if bsSecret.Name == secret.Name && err == nil {
+		if err != nil {
+			log.Errorf(err.Error())
+		}
+		if bsSecret != nil && bsSecret.Name == secret.Name {
 			reqs = append(reqs, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      bs.Name,

@@ -267,10 +267,6 @@ func (r *Reconciler) LoadBackingStoreSecret() error {
 			r.Secret.Name = secretRef.Name
 			r.Secret.Namespace = secretRef.Namespace
 
-			if r.Secret.Namespace == "" {
-				r.Secret.Namespace = r.BackingStore.Namespace
-			}
-
 			if r.Secret.Name == "" {
 				if r.BackingStore.Spec.Type != nbv1.StoreTypePVPool {
 					return util.NewPersistentError("EmptySecretName",
@@ -297,7 +293,7 @@ func (r *Reconciler) LoadBackingStoreSecret() error {
 					return nil
 				}
 				if secret != nil {
-					suggestedSecret := util.CheckForIdenticalSecretsCreds(secret, util.MapStorTypeToMandatoryProperties[r.BackingStore.Spec.Type])
+					suggestedSecret := util.CheckForIdenticalSecretsCreds(secret, string(r.BackingStore.Spec.Type))
 					if suggestedSecret != nil {
 						secretRef.Name = suggestedSecret.Name
 						secretRef.Namespace = suggestedSecret.Namespace
@@ -310,14 +306,16 @@ func (r *Reconciler) LoadBackingStoreSecret() error {
 						}
 						secret = suggestedSecret
 					}
-					err = util.SetOwnerReference(r.BackingStore, secret, r.Scheme)
-					if _, isAlreadyOwnedErr := err.(*controllerutil.AlreadyOwnedError); !isAlreadyOwnedErr {
-						if err == nil {
-							if !util.KubeUpdate(secret) {
-								return fmt.Errorf("failed to update secret: %q owner reference", r.BackingStore.Name)
+					if util.IsOwnedByNoobaa(secret.ObjectMeta.OwnerReferences) {
+						err = util.SetOwnerReference(r.BackingStore, secret, r.Scheme)
+						if _, isAlreadyOwnedErr := err.(*controllerutil.AlreadyOwnedError); !isAlreadyOwnedErr {
+							if err == nil {
+								if !util.KubeUpdate(secret) {
+									return fmt.Errorf("failed to update secret: %q owner reference", r.BackingStore.Name)
+								}
+							} else {
+								return err
 							}
-						} else {
-							return err
 						}
 					}
 				}
