@@ -80,6 +80,7 @@ func (bcv *ResourceValidator) ValidateCreateBC() {
 	}
 }
 
+// ValidateUpdateBC runs all the validations tests for UPDATE operations
 func (bcv *ResourceValidator) ValidateUpdateBC() {
 	oldBC := bcv.DeserializeBC(bcv.arRequest.Request.OldObject.Raw)
 	newBC := bcv.DeserializeBC(bcv.arRequest.Request.Object.Raw)

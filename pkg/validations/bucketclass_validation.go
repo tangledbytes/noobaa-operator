@@ -27,6 +27,7 @@ func ValidateBucketClass(bc *nbv1.BucketClass) error {
 	return ValidateQuotaConfig(bc.Name, bc.Spec.Quota)
 }
 
+// ValidateImmutLabelChange validates that immutable labels are not changed
 func ValidateImmutLabelChange(bc *nbv1.BucketClass, oldBC *nbv1.BucketClass, immuts map[string]struct{}) error {
 	if bc == nil || oldBC == nil {
 		return nil
