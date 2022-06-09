@@ -2,7 +2,7 @@ package bundle
 
 const Version = "5.12.0"
 
-const Sha256_deploy_cluster_role_yaml = "2a700d37829941e0d07d4272910a212215a2334dc764a29d41a7ee1397736148"
+const Sha256_deploy_cluster_role_yaml = "81280bab93de40002f4a8c5d189fe09a175712adaa3a14af566461345544686c"
 
 const File_deploy_cluster_role_yaml = `apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -5450,3 +5450,4 @@ kind: ServiceAccount
 metadata:
   name: noobaa-odf-ui
 `
+
