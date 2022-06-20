@@ -2,7 +2,7 @@ package bundle
 
 const Version = "5.12.0"
 
-const Sha256_deploy_cluster_role_yaml = "81280bab93de40002f4a8c5d189fe09a175712adaa3a14af566461345544686c"
+const Sha256_deploy_cluster_role_yaml = "ae6dd91b54ebf9b8f1b7a6349528a0477194d049234ed1ce2287ddbee58995c9"
 
 const File_deploy_cluster_role_yaml = `apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -108,6 +108,51 @@ rules:
       - securitycontextconstraints
     verbs:
       - '*'
+  - apiGroups:
+      - "ceph.rook.io"
+    resources:
+      - cephclusters
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+    - rbac.authorization.k8s.io
+    resources:
+    - '*'
+    verbs: 
+    - '*'
+  - apiGroups:
+    - route.openshift.io
+    resources:
+    - routes
+    verbs:
+    - get
+    - create
+    - update
+    - list
+    - watch
+  - apiGroups:
+    - cloudcredential.openshift.io
+    resources:
+    - credentialsrequests
+    verbs:
+    - get
+    - create
+    - update
+    - list
+    - watch
+  - apiGroups:
+    - monitoring.coreos.com
+    resources:
+    - servicemonitors
+    - prometheusrules
+    verbs:
+    - get
+    - create
+    - update
+    - list
+    - watch
 `
 
 const Sha256_deploy_cluster_role_binding_yaml = "15c78355aefdceaf577bd96b4ae949ae424a3febdc8853be0917cf89a63941fc"
@@ -5082,7 +5127,7 @@ spec:
             - name: WATCH_NAMESPACE
               value: ""`
 
-const Sha256_deploy_role_yaml = "99798a1daa31e0f0546dbea3ba11411f0298051c64c401c9f168120ef2a9ef46"
+const Sha256_deploy_role_yaml = "e9c3ec4bdd362799a2d218b7d5f5f6045f82fda487d19e538bcfecfb99de04cb"
 
 const File_deploy_role_yaml = `apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -5118,17 +5163,6 @@ rules:
   verbs:
   - '*'
 - apiGroups:
-  - monitoring.coreos.com
-  resources:
-  - servicemonitors
-  - prometheusrules
-  verbs:
-  - get
-  - create
-  - update
-  - list
-  - watch
-- apiGroups:
   - ""
   resources:
   - services/finalizers
@@ -5142,16 +5176,6 @@ rules:
   - deployments/finalizers
   verbs:
   - update
-- apiGroups:
-  - cloudcredential.openshift.io
-  resources:
-  - credentialsrequests
-  verbs:
-  - get
-  - create
-  - update
-  - list
-  - watch
 - apiGroups:
   - ceph.rook.io
   resources:

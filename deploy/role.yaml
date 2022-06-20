@@ -32,17 +32,6 @@ rules:
   verbs:
   - '*'
 - apiGroups:
-  - monitoring.coreos.com
-  resources:
-  - servicemonitors
-  - prometheusrules
-  verbs:
-  - get
-  - create
-  - update
-  - list
-  - watch
-- apiGroups:
   - ""
   resources:
   - services/finalizers
@@ -56,16 +45,6 @@ rules:
   - deployments/finalizers
   verbs:
   - update
-- apiGroups:
-  - cloudcredential.openshift.io
-  resources:
-  - credentialsrequests
-  verbs:
-  - get
-  - create
-  - update
-  - list
-  - watch
 - apiGroups:
   - ceph.rook.io
   resources:
