@@ -82,23 +82,28 @@ func Add(mgr manager.Manager) error {
 	if err != nil {
 		return err
 	}
-	err = c.Watch(&source.Kind{Type: &appsv1.StatefulSet{}}, ownerHandler, &filterForOwnerPredicate, &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &appsv1.StatefulSet{}}, ownerHandler,
+		util.IgnoreIfNotInNamespace(options.Namespace), &filterForOwnerPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
-	err = c.Watch(&source.Kind{Type: &corev1.Service{}}, ownerHandler, &filterForOwnerPredicate, &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &corev1.Service{}}, ownerHandler,
+		util.IgnoreIfNotInNamespace(options.Namespace), &filterForOwnerPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, ownerHandler, &filterForOwnerPredicate, &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, ownerHandler,
+		util.IgnoreIfNotInNamespace(options.Namespace), &filterForOwnerPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
-	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, ownerHandler, &filterForOwnerPredicate, &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, ownerHandler,
+		util.IgnoreIfNotInNamespace(options.Namespace), &filterForOwnerPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
-	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, ownerHandler, &filterForOwnerPredicate, &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, ownerHandler,
+		util.IgnoreIfNotInNamespace(options.Namespace), &filterForOwnerPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
@@ -118,7 +123,8 @@ func Add(mgr manager.Manager) error {
 	)
 
 	// Watch for StorageClass changes to trigger reconcile and recreate it when deleted
-	err = c.Watch(&source.Kind{Type: &storagev1.StorageClass{}}, storageClassHandler, &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &storagev1.StorageClass{}}, storageClassHandler,
+		util.IgnoreIfNotInNamespace(options.Namespace), &logEventsPredicate)
 	if err != nil {
 		return err
 	}

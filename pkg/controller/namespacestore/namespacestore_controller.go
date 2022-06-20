@@ -61,11 +61,11 @@ func Add(mgr manager.Manager) error {
 
 	secretsHandler := handler.EnqueueRequestsFromMapFunc(func(obj client.Object) []reconcile.Request {
 		return namespacestore.MapSecretToNamespaceStores(types.NamespacedName{
-			Name: obj.GetName(),
+			Name:      obj.GetName(),
 			Namespace: obj.GetNamespace(),
 		})
 	})
-	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, secretsHandler, logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, secretsHandler, util.IgnoreIfNotInNamespace(options.Namespace), logEventsPredicate)
 	if err != nil {
 		return err
 	}

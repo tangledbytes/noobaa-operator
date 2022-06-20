@@ -66,7 +66,8 @@ func Add(mgr manager.Manager) error {
 		})
 	},
 	)
-	err = c.Watch(&source.Kind{Type: &nbv1.BackingStore{}}, backingStoreHandler, logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &nbv1.BackingStore{}}, backingStoreHandler,
+		util.IgnoreIfNotInNamespace(options.Namespace), logEventsPredicate)
 	if err != nil {
 		return err
 	}
@@ -78,7 +79,8 @@ func Add(mgr manager.Manager) error {
 		})
 	},
 	)
-	err = c.Watch(&source.Kind{Type: &nbv1.NamespaceStore{}}, namespaceStoreHandler, logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &nbv1.NamespaceStore{}}, namespaceStoreHandler,
+		util.IgnoreIfNotInNamespace(options.Namespace), logEventsPredicate)
 	if err != nil {
 		return err
 	}

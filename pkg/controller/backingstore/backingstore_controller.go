@@ -88,7 +88,8 @@ func Add(mgr manager.Manager) error {
 			Namespace: obj.GetNamespace(),
 		})
 	})
-	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, secretsHandler, logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, secretsHandler,
+		util.IgnoreIfNotInNamespace(options.Namespace), logEventsPredicate)
 	if err != nil {
 		return err
 	}
