@@ -102,3 +102,11 @@ rules:
       - securitycontextconstraints
     verbs:
       - '*'
+  - apiGroups:
+      - "ceph.rook.io"
+    resources:
+      - cephclusters
+    verbs:
+      - get
+      - list
+      - watch
