@@ -2,7 +2,7 @@ package bundle
 
 const Version = "5.12.0"
 
-const Sha256_deploy_cluster_role_yaml = "81280bab93de40002f4a8c5d189fe09a175712adaa3a14af566461345544686c"
+const Sha256_deploy_cluster_role_yaml = "710b31a9b288a47a86bc97de1a05759cccdf7e2df425aa2ebde64143331167ff"
 
 const File_deploy_cluster_role_yaml = `apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -108,6 +108,14 @@ rules:
       - securitycontextconstraints
     verbs:
       - '*'
+  - apiGroups:
+      - "ceph.rook.io"
+    resources:
+      - cephclusters
+    verbs:
+      - get
+      - list
+      - watch
 `
 
 const Sha256_deploy_cluster_role_binding_yaml = "15c78355aefdceaf577bd96b4ae949ae424a3febdc8853be0917cf89a63941fc"
