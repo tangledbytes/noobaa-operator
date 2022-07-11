@@ -78,32 +78,27 @@ func Add(mgr manager.Manager) error {
 	ownerHandler := &handler.EnqueueRequestForOwner{IsController: true, OwnerType: &nbv1.NooBaa{}}
 
 	err = c.Watch(&source.Kind{Type: &nbv1.NooBaa{}}, &handler.EnqueueRequestForObject{},
-		util.IgnoreIfNotInNamespace(options.Namespace), noobaaPredicate, &logEventsPredicate)
+		noobaaPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
-	err = c.Watch(&source.Kind{Type: &appsv1.StatefulSet{}}, ownerHandler,
-		util.IgnoreIfNotInNamespace(options.Namespace), &filterForOwnerPredicate, &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &appsv1.StatefulSet{}}, ownerHandler, &filterForOwnerPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
-	err = c.Watch(&source.Kind{Type: &corev1.Service{}}, ownerHandler,
-		util.IgnoreIfNotInNamespace(options.Namespace), &filterForOwnerPredicate, &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &corev1.Service{}}, ownerHandler, &filterForOwnerPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, ownerHandler,
-		util.IgnoreIfNotInNamespace(options.Namespace), &filterForOwnerPredicate, &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, ownerHandler, &filterForOwnerPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
-	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, ownerHandler,
-		util.IgnoreIfNotInNamespace(options.Namespace), &filterForOwnerPredicate, &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, ownerHandler, &filterForOwnerPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
-	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, ownerHandler,
-		util.IgnoreIfNotInNamespace(options.Namespace), &filterForOwnerPredicate, &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, ownerHandler, &filterForOwnerPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
@@ -123,8 +118,7 @@ func Add(mgr manager.Manager) error {
 	)
 
 	// Watch for StorageClass changes to trigger reconcile and recreate it when deleted
-	err = c.Watch(&source.Kind{Type: &storagev1.StorageClass{}}, storageClassHandler,
-		util.IgnoreIfNotInNamespace(options.Namespace), &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &storagev1.StorageClass{}}, storageClassHandler, &logEventsPredicate)
 	if err != nil {
 		return err
 	}

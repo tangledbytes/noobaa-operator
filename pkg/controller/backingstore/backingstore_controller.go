@@ -5,7 +5,6 @@ import (
 
 	nbv1 "github.com/noobaa/noobaa-operator/v5/pkg/apis/noobaa/v1alpha1"
 	"github.com/noobaa/noobaa-operator/v5/pkg/backingstore"
-	"github.com/noobaa/noobaa-operator/v5/pkg/options"
 	"github.com/noobaa/noobaa-operator/v5/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -63,18 +62,15 @@ func Add(mgr manager.Manager) error {
 	// Watch for changes on resources to trigger reconcile
 	ownerHandler := &handler.EnqueueRequestForOwner{IsController: true, OwnerType: &nbv1.BackingStore{}}
 
-	err = c.Watch(&source.Kind{Type: &nbv1.BackingStore{}}, &handler.EnqueueRequestForObject{},
-		util.IgnoreIfNotInNamespace(options.Namespace), backingStorePredicate, &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &nbv1.BackingStore{}}, &handler.EnqueueRequestForObject{}, backingStorePredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, ownerHandler,
-		util.IgnoreIfNotInNamespace(options.Namespace), &filterForOwnerPredicate, &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, ownerHandler, &filterForOwnerPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
-	err = c.Watch(&source.Kind{Type: &corev1.PersistentVolumeClaim{}}, ownerHandler,
-		util.IgnoreIfNotInNamespace(options.Namespace), &filterForOwnerPredicate, &logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &corev1.PersistentVolumeClaim{}}, ownerHandler, &filterForOwnerPredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
@@ -88,8 +84,7 @@ func Add(mgr manager.Manager) error {
 			Namespace: obj.GetNamespace(),
 		})
 	})
-	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, secretsHandler,
-		util.IgnoreIfNotInNamespace(options.Namespace), logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, secretsHandler, logEventsPredicate)
 	if err != nil {
 		return err
 	}

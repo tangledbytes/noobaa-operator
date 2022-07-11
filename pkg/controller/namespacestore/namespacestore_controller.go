@@ -5,7 +5,6 @@ import (
 
 	nbv1 "github.com/noobaa/noobaa-operator/v5/pkg/apis/noobaa/v1alpha1"
 	"github.com/noobaa/noobaa-operator/v5/pkg/namespacestore"
-	"github.com/noobaa/noobaa-operator/v5/pkg/options"
 	"github.com/noobaa/noobaa-operator/v5/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -54,7 +53,7 @@ func Add(mgr manager.Manager) error {
 		namespaceStoreModeChangedPredicate{},
 	)
 	err = c.Watch(&source.Kind{Type: &nbv1.NamespaceStore{}}, &handler.EnqueueRequestForObject{},
-		util.IgnoreIfNotInNamespace(options.Namespace), namespaceStorePredicate, &logEventsPredicate)
+		namespaceStorePredicate, &logEventsPredicate)
 	if err != nil {
 		return err
 	}
@@ -65,7 +64,7 @@ func Add(mgr manager.Manager) error {
 			Namespace: obj.GetNamespace(),
 		})
 	})
-	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, secretsHandler, util.IgnoreIfNotInNamespace(options.Namespace), logEventsPredicate)
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, secretsHandler, logEventsPredicate)
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,7 @@ package bundle
 
 const Version = "5.12.0"
 
-const Sha256_deploy_cluster_role_yaml = "ae6dd91b54ebf9b8f1b7a6349528a0477194d049234ed1ce2287ddbee58995c9"
+const Sha256_deploy_cluster_role_yaml = "af479a2ade093cf0a2c220fe4650151075cc0aaa58a01dd0ae60e7f7022d42d5"
 
 const File_deploy_cluster_role_yaml = `apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -73,28 +73,6 @@ rules:
     verbs:
       - create
   - apiGroups:
-      - ""
-    resources:
-      - pods
-      - services
-      - persistentvolumeclaims
-      - serviceaccounts
-    verbs:
-      - "*"
-  - apiGroups:
-      - "apps"
-    resources:
-      - deployments
-      - statefulsets
-    verbs:
-      - "*"
-  - apiGroups:
-      - "autoscaling"
-    resources:
-      - horizontalpodautoscalers
-    verbs:
-      - "*"
-  - apiGroups:
       - admissionregistration.k8s.io
     resources:
       - validatingwebhookconfigurations
@@ -108,51 +86,6 @@ rules:
       - securitycontextconstraints
     verbs:
       - '*'
-  - apiGroups:
-      - "ceph.rook.io"
-    resources:
-      - cephclusters
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-    - rbac.authorization.k8s.io
-    resources:
-    - '*'
-    verbs: 
-    - '*'
-  - apiGroups:
-    - route.openshift.io
-    resources:
-    - routes
-    verbs:
-    - get
-    - create
-    - update
-    - list
-    - watch
-  - apiGroups:
-    - cloudcredential.openshift.io
-    resources:
-    - credentialsrequests
-    verbs:
-    - get
-    - create
-    - update
-    - list
-    - watch
-  - apiGroups:
-    - monitoring.coreos.com
-    resources:
-    - servicemonitors
-    - prometheusrules
-    verbs:
-    - get
-    - create
-    - update
-    - list
-    - watch
 `
 
 const Sha256_deploy_cluster_role_binding_yaml = "15c78355aefdceaf577bd96b4ae949ae424a3febdc8853be0917cf89a63941fc"
@@ -5081,7 +5014,7 @@ spec:
   sourceNamespace: default
 `
 
-const Sha256_deploy_operator_yaml = "d8ea8f13bd400b60628bf5ec43343ad68950ae36e330a646a97e149fda44f7e5"
+const Sha256_deploy_operator_yaml = "2870838f688bf1691d85c64dc5e302eb6575996427c7cfdb7143f322ff0dbd18"
 
 const File_deploy_operator_yaml = `apiVersion: apps/v1
 kind: Deployment
@@ -5125,9 +5058,12 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: WATCH_NAMESPACE
-              value: ""`
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+`
 
-const Sha256_deploy_role_yaml = "e9c3ec4bdd362799a2d218b7d5f5f6045f82fda487d19e538bcfecfb99de04cb"
+const Sha256_deploy_role_yaml = "99798a1daa31e0f0546dbea3ba11411f0298051c64c401c9f168120ef2a9ef46"
 
 const File_deploy_role_yaml = `apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -5163,6 +5099,17 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  - prometheusrules
+  verbs:
+  - get
+  - create
+  - update
+  - list
+  - watch
+- apiGroups:
   - ""
   resources:
   - services/finalizers
@@ -5176,6 +5123,16 @@ rules:
   - deployments/finalizers
   verbs:
   - update
+- apiGroups:
+  - cloudcredential.openshift.io
+  resources:
+  - credentialsrequests
+  verbs:
+  - get
+  - create
+  - update
+  - list
+  - watch
 - apiGroups:
   - ceph.rook.io
   resources:
