@@ -21,7 +21,6 @@ import (
 	"github.com/noobaa/noobaa-operator/v5/pkg/util"
 
 	"github.com/operator-framework/operator-lib/leader"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
@@ -46,6 +45,7 @@ func RunOperator(cmd *cobra.Command, args []string) {
 		log.Fatalf("Failed to become leader: %s", err)
 	}
 
+	// [@D]: ODF => Check prometheus metrics duplication
 	// Create a new Cmd to provide shared dependencies and start components
 	mgr, err := manager.New(config, manager.Options{
 		Namespace:          options.Namespace,
@@ -55,7 +55,6 @@ func RunOperator(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("Failed to create manager: %s", err)
 	}
-	cache.MultiNamespacedCacheBuilder([]string{})
 
 	cmgr, err := manager.New(config, manager.Options{
 		MapperProvider:     util.MapperProvider, // restmapper.NewDynamicRESTMapper,
