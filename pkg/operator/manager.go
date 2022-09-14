@@ -45,8 +45,8 @@ func RunOperator(cmd *cobra.Command, args []string) {
 		log.Fatalf("Failed to become leader: %s", err)
 	}
 
-	// [@D]: ODF => Check prometheus metrics duplication
 	// Create a new Cmd to provide shared dependencies and start components
+	// mgr => namespace scoped manager
 	mgr, err := manager.New(config, manager.Options{
 		Namespace:          options.Namespace,
 		MapperProvider:     util.MapperProvider, // restmapper.NewDynamicRESTMapper,
@@ -56,6 +56,7 @@ func RunOperator(cmd *cobra.Command, args []string) {
 		log.Fatalf("Failed to create manager: %s", err)
 	}
 
+	// cmgr => cluster scoped manager
 	cmgr, err := manager.New(config, manager.Options{
 		MapperProvider:     util.MapperProvider, // restmapper.NewDynamicRESTMapper,
 		MetricsBindAddress: fmt.Sprintf("%s:%d", metricsHost, metricsPort+1),

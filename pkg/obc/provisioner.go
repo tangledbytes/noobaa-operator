@@ -287,15 +287,16 @@ func NewBucketRequest(
 			)
 		}
 
+		buckeClassNS, exists := getBucketClassNamespace(r.OBC, bucketOptions, p.Namespace, util.KubeCheck)
 		r.BucketClass = &nbv1.BucketClass{
 			TypeMeta: metav1.TypeMeta{Kind: "BucketClass"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      bucketClassName,
-				Namespace: getBucketClassNamespace(r.OBC, bucketOptions, p.Namespace),
+				Namespace: buckeClassNS,
 			},
 		}
-		if !util.KubeCheck(r.BucketClass) {
-			msg := fmt.Sprintf("BucketClass %q not found in provisioner namespace %q", bucketClassName, p.Namespace)
+		if !exists {
+			msg := fmt.Sprintf("BucketClass %q not found in namespace %q", bucketClassName, p.Namespace)
 			p.recorder.Event(r.OBC, "Warning", "MissingBucketClass", msg)
 			return nil, fmt.Errorf(msg)
 		}
@@ -334,15 +335,16 @@ func NewBucketRequest(
 		r.AccountName = ob.Spec.AdditionalState["account"]
 		bucketClassName := ob.Spec.AdditionalState["bucketclass"]
 
+		bucketClassNS, exists := getBucketClassNamespace(r.OBC, bucketOptions, p.Namespace, util.KubeCheck)
+		if !exists {
+			p.Logger.Warnf("BucketClass %q not found in namespace %q", bucketClassName, p.Namespace)
+		}
 		r.BucketClass = &nbv1.BucketClass{
 			TypeMeta: metav1.TypeMeta{Kind: "BucketClass"},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      bucketClassName,
-				Namespace: getBucketClassNamespace(r.OBC, nil, p.Namespace),
+				Namespace: bucketClassNS,
 			},
-		}
-		if !util.KubeCheck(r.BucketClass) {
-			p.Logger.Warnf("BucketClass %q not found in provisioner namespace %q", bucketClassName, p.Namespace)
 		}
 		if r.OB.Spec.Connection.Endpoint.AdditionalConfigData == nil {
 			r.OB.Spec.Connection.Endpoint.AdditionalConfigData = map[string]string{}
@@ -467,7 +469,7 @@ func (r *BucketRequest) CreateAndUpdateBucket(
 	return r.UpdateBucket()
 }
 
-//UpdateBucket update obc bucket
+// UpdateBucket update obc bucket
 func (r *BucketRequest) UpdateBucket() error {
 
 	log := r.Provisioner.Logger
@@ -572,7 +574,7 @@ func (r *BucketRequest) getQuotaConfig() (*nb.QuotaConfig, error) {
 	return &quota, nil
 }
 
-//LogAndGetError error handler. prints error message to log and returns error
+// LogAndGetError error handler. prints error message to log and returns error
 func (r *BucketRequest) LogAndGetError(format string, a ...interface{}) error {
 	log := r.Provisioner.Logger
 	msg := fmt.Sprintf(format, a...)
@@ -805,16 +807,47 @@ func (r *BucketRequest) updateReplicationPolicy(ob *nbv1.ObjectBucket) error {
 	return nil
 }
 
-func getBucketClassNamespace(ob *nbv1.ObjectBucketClaim, bucketOptions *obAPI.BucketOptions, provisionerNS string) string {
-	if ob != nil && ob.Spec.AdditionalConfig["bucketclassNamespace"] != "" {
-		return ob.Spec.AdditionalConfig["bucketclassNamespace"]
+// getBucketClassNamespace takes an OBC, bucketoptions and provisioner namespace and returns the namespace where
+// the bucketClass must exist, if the bucketclass doesn't exists then it will return `exists` as false
+//
+// A bucketClass is first looked into the namespace of the OBC, if not found then it will be looked into the
+// namespace of the provisioner, if not found then it will return the provisioner namespace with `exists` as false
+func getBucketClassNamespace(
+	obc *nbv1.ObjectBucketClaim,
+	bucketOptions *obAPI.BucketOptions,
+	provisionerNS string,
+	checkExists func(client.Object) bool,
+) (ns string, exists bool) {
+	if obc == nil {
+		return "", false
 	}
 
-	if bucketOptions != nil && bucketOptions.Parameters["bucketclassNamespace"] != "" {
-		return bucketOptions.Parameters["bucketclassNamespace"]
+	bucketclassName := obc.Spec.AdditionalConfig["bucketclass"]
+	if bucketclassName != "" {
+		bucketclassName = bucketOptions.Parameters["bucketclass"]
 	}
 
-	// If no annotations are identified then return the default namespace
-	// this is to ensure backwards compatibility of the change
-	return provisionerNS
+	// Find the bucketclass in the same namespace as the OBC
+	if checkExists(&nbv1.BucketClass{
+		TypeMeta: metav1.TypeMeta{Kind: "BucketClass"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      bucketclassName,
+			Namespace: obc.Namespace,
+		},
+	}) {
+		return obc.Namespace, true
+	}
+
+	// Find the bucketclass in the provisioner namespace
+	if checkExists(&nbv1.BucketClass{
+		TypeMeta: metav1.TypeMeta{Kind: "BucketClass"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      bucketclassName,
+			Namespace: provisionerNS,
+		},
+	}) {
+		return provisionerNS, true
+	}
+
+	return provisionerNS, false
 }

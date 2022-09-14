@@ -1,56 +1,111 @@
 package obc
 
 import (
-	"github.com/kube-object-storage/lib-bucket-provisioner/pkg/provisioner/api"
 	nbv1 "github.com/noobaa/noobaa-operator/v5/pkg/apis/noobaa/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("OBC referenced BucketClass", func() {
-	Context("No bucketclassNamespace specified", func() {
-		It("should return the BucketClass namespace to be same as NooBaa System namespace", func() {
+	Context("When a bucketclass exists in the same namespace that of OBC", func() {
+		It("should return the BucketClass namespace to be the same as that of OBC", func() {
+			obcNS := "obc-ns"
 			systemNS := "test"
-
-			obc := &nbv1.ObjectBucketClaim{}
-
-			Expect(getBucketClassNamespace(obc, nil, systemNS)).To(Equal(systemNS))
-		})
-	})
-
-	Context("bucketclassNamespace specified", func() {
-		It("should return the BucketClass namespace to be same as specified in the obc", func() {
-			systemNS := "test"
-			bcn := "test1"
 
 			obc := &nbv1.ObjectBucketClaim{
-				Spec: nbv1.ObjectBucketClaimSpec{
-					AdditionalConfig: map[string]string{
-						"bucketclassNamespace": bcn,
-					},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: obcNS,
 				},
 			}
 
-			Expect(getBucketClassNamespace(obc, nil, systemNS)).To(Equal(bcn))
+			ns, ok := getBucketClassNamespace(
+				obc,
+				nil,
+				systemNS,
+				func(o client.Object) bool {
+					return o.GetNamespace() == obcNS
+				},
+			)
+
+			Expect(ok).To(BeTrue())
+			Expect(ns).To(Equal(obcNS))
 		})
 	})
 
-	Context("bucketclassNamespace specified in bucketOptions", func() {
-		It("should return the BucketClass namespace to be same as specified in the bucketOptions", func() {
+	Context("When a bucketclass exists in the system namespace", func() {
+		It("should return the BucketClass namespace to be the same as that of system", func() {
+			obcNS := "obc-ns"
 			systemNS := "test"
-			bcn := "test1"
 
 			obc := &nbv1.ObjectBucketClaim{
-				Spec: nbv1.ObjectBucketClaimSpec{},
-			}
-
-			bucketOptions := &api.BucketOptions{
-				Parameters: map[string]string{
-					"bucketclassNamespace": bcn,
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: obcNS,
 				},
 			}
 
-			Expect(getBucketClassNamespace(obc, bucketOptions, systemNS)).To(Equal(bcn))
+			ns, ok := getBucketClassNamespace(
+				obc,
+				nil,
+				systemNS,
+				func(o client.Object) bool {
+					return o.GetNamespace() == systemNS
+				},
+			)
+
+			Expect(ok).To(BeTrue())
+			Expect(ns).To(Equal(systemNS))
+		})
+	})
+
+	Context("When a bucketclass exists in the system namespace as well as OBC namespace", func() {
+		It("should return the BucketClass namespace to be the same as that of OBC", func() {
+			obcNS := "obc-ns"
+			systemNS := "test"
+
+			obc := &nbv1.ObjectBucketClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: obcNS,
+				},
+			}
+
+			ns, ok := getBucketClassNamespace(
+				obc,
+				nil,
+				systemNS,
+				func(o client.Object) bool {
+					return o.GetNamespace() == systemNS || o.GetNamespace() == obcNS
+				},
+			)
+
+			Expect(ok).To(BeTrue())
+			Expect(ns).To(Equal(obcNS))
+		})
+	})
+
+	Context("When a bucketclass does not exists in system namespace or OBC namespace", func() {
+		It("should return the BucketClass namespace to be the same as that of system namespace with \"ok\" set to false", func() {
+			obcNS := "obc-ns"
+			systemNS := "test"
+
+			obc := &nbv1.ObjectBucketClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: obcNS,
+				},
+			}
+
+			ns, ok := getBucketClassNamespace(
+				obc,
+				nil,
+				systemNS,
+				func(o client.Object) bool {
+					return false
+				},
+			)
+
+			Expect(ok).To(BeFalse())
+			Expect(ns).To(Equal(systemNS))
 		})
 	})
 })
