@@ -3,7 +3,7 @@ package backingstore
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -49,8 +49,9 @@ func Cmd() *cobra.Command {
 // CmdCreate returns a CLI command
 func CmdCreate() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "create",
+		Use:   "create <backing-store-type> <backing-store-name>",
 		Short: "Create backing store",
+		Run:   RunCreate,
 	}
 	cmd.AddCommand(
 		CmdCreateAWSS3(),
@@ -423,6 +424,18 @@ func createCommon(cmd *cobra.Command, args []string, storeType nbv1.StoreType, p
 	}
 }
 
+// RunCreate runs a cli command
+func RunCreate(cmd *cobra.Command, args []string) {
+	log := util.Logger()
+	if len(args) != 1 || args[0] == "" {
+		log.Fatalf(`❌ Missing expected arguments: <backing-store-type> %s`, cmd.UsageString())
+	}
+	if args[0] != "aws-s3" && args[0] != "aws-sts-s3" && args[0] != "google-cloud-storage" &&
+		args[0] != "azure-blob" && args[0] != "ibm-cos" && args[0] != "pv-pool" && args[0] != "s3-compatible" {
+		log.Fatalf(`❌ Unsupported <backing-store-type> -> %s %s`, args[0], cmd.UsageString())
+	}
+}
+
 // RunCreateAWSSTSS3 runs a cli command
 func RunCreateAWSSTSS3(cmd *cobra.Command, args []string) {
 	log := util.Logger()
@@ -605,7 +618,7 @@ func RunCreateGoogleCloudStorage(cmd *cobra.Command, args []string) {
 
 		if secretName == "" {
 			privateKeyJSONFile := util.GetFlagStringOrPrompt(cmd, "private-key-json-file")
-			bytes, err := ioutil.ReadFile(privateKeyJSONFile)
+			bytes, err := os.ReadFile(privateKeyJSONFile)
 			if err != nil {
 				log.Fatalf("Failed to read file %q: %v", privateKeyJSONFile, err)
 			}
@@ -879,7 +892,7 @@ func RunStatus(cmd *cobra.Command, args []string) {
 			if secret.Namespace == "" {
 				secret.Namespace = backStore.Namespace
 			}
-			if !util.KubeCheck(secret) {
+			if backStore.Spec.Type != nbv1.StoreTypePVPool && !util.KubeCheck(secret) {
 				log.Errorf(`❌ Could not get Secret %q in namespace %q`,
 					secret.Name, secret.Namespace)
 			}
@@ -894,7 +907,7 @@ func RunStatus(cmd *cobra.Command, args []string) {
 	util.Panic(err)
 	fmt.Print(string(output))
 	fmt.Println()
-	if secretRef != nil {
+	if secretRef != nil && secret.Name != "" {
 		_, err = sigyaml.Marshal(secret.StringData)
 		util.Panic(err)
 		fmt.Println()

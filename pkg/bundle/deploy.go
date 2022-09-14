@@ -1037,7 +1037,7 @@ spec:
       status: {}
 `
 
-const Sha256_deploy_crds_noobaa_io_noobaaaccounts_crd_yaml = "7526b82c1d939e8876604ca7f4893ac83eca229061b05df7b8886fd08685bea7"
+const Sha256_deploy_crds_noobaa_io_noobaaaccounts_crd_yaml = "6a83158a5150833e5c6e337b3a7f88d03c656de195e4b360085c506b064beac7"
 
 const File_deploy_crds_noobaa_io_noobaaaccounts_crd_yaml = `apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -1084,20 +1084,6 @@ spec:
                 description: AllowBucketCreate specifies if new buckets can be created
                   by this account
                 type: boolean
-              allowed_buckets:
-                description: AllowedBuckets specifies which buckets this account can
-                  access
-                properties:
-                  full_permission:
-                    type: boolean
-                  permission_list:
-                    items:
-                      type: string
-                    type: array
-                required:
-                - full_permission
-                - permission_list
-                type: object
               default_resource:
                 description: DefaultResource specifies which backingstore this account
                   will use to create new buckets
@@ -1123,7 +1109,6 @@ spec:
                 type: object
             required:
             - allow_bucket_creation
-            - allowed_buckets
             type: object
           status:
             description: Most recently observed status of the NooBaaAccount.
@@ -1231,7 +1216,7 @@ spec:
       status: {}
 `
 
-const Sha256_deploy_crds_noobaa_io_noobaas_crd_yaml = "2b33414098bb5801ce4390ff74ebbe3ccb64ab9d4eebd42a042464b6c5ce4143"
+const Sha256_deploy_crds_noobaa_io_noobaas_crd_yaml = "a0c90aee88345fbe92f3d1df9b304cfd451e7b4e4321d408fc13500ff4c9d4b5"
 
 const File_deploy_crds_noobaa_io_noobaas_crd_yaml = `apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -2551,6 +2536,25 @@ spec:
                 nullable: true
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
+              loadBalancerSourceSubnets:
+                description: LoadBalancerSourceSubnets (optional) if given will allow
+                  access to the NooBaa services only from the listed subnets. This
+                  field will have no effect if DisableLoadBalancerService is set to
+                  true
+                properties:
+                  s3:
+                    description: S3 is a list of subnets that will be allowed to access
+                      the Noobaa S3 service
+                    items:
+                      type: string
+                    type: array
+                  sts:
+                    description: STS is a list of subnets that will be allowed to
+                      access the Noobaa STS service
+                    items:
+                      type: string
+                    type: array
+                type: object
               mongoDbURL:
                 description: MongoDbURL (optional) overrides the default mongo db
                   remote url
@@ -2997,7 +3001,7 @@ metadata:
 spec: {}
 `
 
-const Sha256_deploy_internal_admission_webhook_yaml = "a9d71b881748ed66ec0447d16a41fc7004a3db0634e455f10e5ed41f4c010f47"
+const Sha256_deploy_internal_admission_webhook_yaml = "6ac4c09a3923e2545fe484dbf68171d718669cf03e874889f44e005ed5f8529c"
 
 const File_deploy_internal_admission_webhook_yaml = `apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -3036,6 +3040,8 @@ webhooks:
       apiVersions: ["v1alpha1"]
       operations:  
       - "DELETE"
+      - "CREATE"
+      - "UPDATE"
       resources:   
       - "noobaas"
       scope: "Namespaced"
@@ -3130,6 +3136,17 @@ spec:
     predefinedRoles:
     - roles/storage.admin
     skipServiceCheck: true
+`
+
+const Sha256_deploy_internal_configmap_ca_inject_yaml = "75f8ab503a683bcebd2ed6a2c9f8da0a4c174a62b4e6ca7e97ebc3da847ca866"
+
+const File_deploy_internal_configmap_ca_inject_yaml = `apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    config.openshift.io/inject-trusted-cabundle: "true"
+  name: noobaa-ca-inject
+data: {}
 `
 
 const Sha256_deploy_internal_configmap_empty_yaml = "6405c531c6522ecd54808f5cb531c1001b9ad01a73917427c523a92be44f348f"
@@ -3433,7 +3450,7 @@ spec:
         claimName: noobaa-pv-claim
 `
 
-const Sha256_deploy_internal_prometheus_rules_yaml = "020543cc2d0cae0cec95afc569bca77511e1d8d2d09969b8f303fa7b1c977935"
+const Sha256_deploy_internal_prometheus_rules_yaml = "cb2ad373486d32ee49226251ebe7f07ff0f189c4efe9cfaa6e2d8b23f606a6d6"
 
 const File_deploy_internal_prometheus_rules_yaml = `apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -3494,6 +3511,18 @@ spec:
         system_type: OCS
         system_vendor: Red Hat
       record: odf_system_throughput_total_bytes
+    - expr: |
+        sum(NooBaa_num_buckets + NooBaa_num_buckets_claims)
+      record: odf_system_bucket_count
+      labels:
+        system_type: OCS
+        system_vendor: Red Hat
+    - expr: |
+        sum(NooBaa_num_objects + NooBaa_num_objects_buckets_claims)
+      record: odf_system_objects_total
+      labels:
+        system_type: OCS
+        system_vendor: Red Hat
   - name: noobaa-replication.rules
     rules:
     - expr: |
@@ -3760,7 +3789,7 @@ spec:
       name: mongodb
 `
 
-const Sha256_deploy_internal_service_mgmt_yaml = "89c34cdc0078bec5fdd4146775838248fccfb30032ffe8279e62b460a3856204"
+const Sha256_deploy_internal_service_mgmt_yaml = "fa5f052fb360e6893fc446a318413a6f494a8610706ae7e36ff985b3b3a5c070"
 
 const File_deploy_internal_service_mgmt_yaml = `apiVersion: v1
 kind: Service
@@ -3776,7 +3805,7 @@ metadata:
     service.beta.openshift.io/serving-cert-secret-name: noobaa-mgmt-serving-cert
     service.alpha.openshift.io/serving-cert-secret-name: noobaa-mgmt-serving-cert
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     noobaa-mgmt: SYSNAME
   ports:

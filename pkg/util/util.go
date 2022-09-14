@@ -14,7 +14,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -133,7 +132,7 @@ func AddToRootCAs(localCertFile string) error {
 	}
 
 	// Read in the cert file
-	certs, err := ioutil.ReadFile(localCertFile)
+	certs, err := os.ReadFile(localCertFile)
 	if err != nil {
 		log.Errorf("Failed to append %q to RootCAs: %v", localCertFile, err)
 		return err
@@ -1198,7 +1197,7 @@ func DiscoverOAuthEndpoints() (*OAuth2Endpoints, error) {
 		return nil, err
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -1527,7 +1526,7 @@ func DeleteStorageClass(sc *storagev1.StorageClass) error {
 func LoadBucketReplicationJSON(replicationJSONFilePath string) (string, error) {
 
 	logrus.Infof("loading bucket replication %v", replicationJSONFilePath)
-	bytes, err := ioutil.ReadFile(replicationJSONFilePath)
+	bytes, err := os.ReadFile(replicationJSONFilePath)
 	if err != nil {
 		return "", fmt.Errorf("Failed to read file %q: %v", replicationJSONFilePath, err)
 	}
@@ -1969,4 +1968,20 @@ func IsOwnedByNoobaa(ownerReferences []metav1.OwnerReference) bool {
 		}
 	}
 	return false
+}
+
+// PrettyPrint the string array in multiple lines, if length greater than 1
+func PrettyPrint(key string, strArray []string) {
+	if len(strArray) > 1 {
+		fmt.Printf("%s : [ %s,\n", key, strArray[0])
+		for indx, i := range strArray[1:] {
+			if indx != len(strArray)-2 {
+				fmt.Printf("\t\t%s,\n", i)
+			} else {
+				fmt.Printf("\t\t%s ]\n", i)
+			}
+		}
+	} else {
+		fmt.Printf("%s : %s\n", key, strArray)
+	}
 }

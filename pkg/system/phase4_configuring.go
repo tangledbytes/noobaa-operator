@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -419,6 +419,30 @@ func (r *Reconciler) setDesiredEndpointMounts(podSpec *corev1.PodSpec, container
 	podSpec.Volumes = r.DefaultDeploymentEndpoint.Volumes
 	container.VolumeMounts = r.DefaultDeploymentEndpoint.Containers[0].VolumeMounts
 
+	if util.KubeCheckQuiet(r.CaBundleConf) {
+		configMapVolumes := []corev1.Volume {{
+			Name: r.CaBundleConf.Name,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: r.CaBundleConf.Name,
+					},
+					Items: []corev1.KeyToPath{{
+						Key:  "ca-bundle.crt",
+						Path: "tls-ca-bundle.pem",
+					}},
+				},
+			},
+		}}
+		util.MergeVolumeList(&podSpec.Volumes, &configMapVolumes)
+		configMapVolumeMounts := []corev1.VolumeMount {{
+			Name:      r.CaBundleConf.Name,
+			MountPath: "/etc/pki/ca-trust/extracted/pem",
+			ReadOnly: true,
+		}}
+		util.MergeVolumeMountList(&container.VolumeMounts, &configMapVolumeMounts)
+	}
+
 	for _, nsStore := range namespaceStoreList.Items {
 		// Since namespacestore is able to get a rejected state on runtime errors,
 		// we want to skip namespacestores with invalid configuration only.
@@ -751,7 +775,7 @@ func (r *Reconciler) prepareAWSSTSBackingStore() error {
 	if err != nil {
 		return err
 	}
-	bytes, err := ioutil.ReadFile(projectedServiceAccountTokenFile)
+	bytes, err := os.ReadFile(projectedServiceAccountTokenFile)
 	if err != nil {
 		r.Logger.Errorf("Failed to read file %q: %v", projectedServiceAccountTokenFile, err)
 		return err

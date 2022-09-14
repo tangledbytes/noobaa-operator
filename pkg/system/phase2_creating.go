@@ -49,6 +49,10 @@ func (r *Reconciler) ReconcilePhaseCreating() error {
 			r.NooBaaMongoDB.Name, r.NooBaaMongoDB.Spec.ServiceName)
 	}
 
+	if err := r.ReconcileCAInject(); err != nil {
+		return err
+	}
+
 	if err := r.ReconcileObject(r.ServiceAccount, r.SetDesiredServiceAccount); err != nil {
 		return err
 	}
@@ -176,12 +180,6 @@ func (r *Reconciler) SetDesiredServiceAccount() error {
 
 // SetDesiredServiceMgmt updates the ServiceMgmt as desired for reconciling
 func (r *Reconciler) SetDesiredServiceMgmt() error {
-	if r.NooBaa.Spec.DisableLoadBalancerService {
-		r.ServiceMgmt.Spec.Type = corev1.ServiceTypeClusterIP
-	} else {
-		// It is here in case disableLoadBalancerService is removed from the crd or changed to false
-		r.ServiceMgmt.Spec.Type = corev1.ServiceTypeLoadBalancer
-	}
 	r.ServiceMgmt.Spec.Selector["noobaa-mgmt"] = r.Request.Name
 	r.ServiceMgmt.Labels["noobaa-mgmt-svc"] = "true"
 	return nil
@@ -191,9 +189,11 @@ func (r *Reconciler) SetDesiredServiceMgmt() error {
 func (r *Reconciler) SetDesiredServiceS3() error {
 	if r.NooBaa.Spec.DisableLoadBalancerService {
 		r.ServiceS3.Spec.Type = corev1.ServiceTypeClusterIP
+		r.ServiceS3.Spec.LoadBalancerSourceRanges = []string{}
 	} else {
 		// It is here in case disableLoadBalancerService is removed from the crd or changed to false
 		r.ServiceS3.Spec.Type = corev1.ServiceTypeLoadBalancer
+		r.ServiceS3.Spec.LoadBalancerSourceRanges = r.NooBaa.Spec.LoadBalancerSourceSubnets.S3
 	}
 	r.ServiceS3.Spec.Selector["noobaa-s3"] = r.Request.Name
 	r.ServiceS3.Labels["noobaa-s3-svc"] = "true"
@@ -204,9 +204,11 @@ func (r *Reconciler) SetDesiredServiceS3() error {
 func (r *Reconciler) SetDesiredServiceSts() error {
 	if r.NooBaa.Spec.DisableLoadBalancerService {
 		r.ServiceSts.Spec.Type = corev1.ServiceTypeClusterIP
+		r.ServiceSts.Spec.LoadBalancerSourceRanges = []string{}
 	} else {
 		// It is here in case disableLoadBalancerService is removed from the crd or changed to false
 		r.ServiceSts.Spec.Type = corev1.ServiceTypeLoadBalancer
+		r.ServiceSts.Spec.LoadBalancerSourceRanges = r.NooBaa.Spec.LoadBalancerSourceSubnets.STS
 	}
 	r.ServiceSts.Spec.Selector["noobaa-s3"] = r.Request.Name
 	return nil
@@ -472,7 +474,15 @@ func (r *Reconciler) SetDesiredCoreApp() error {
 			if r.NooBaa.Spec.CoreResources != nil {
 				c.Resources = *r.NooBaa.Spec.CoreResources
 			}
-		}
+			if util.KubeCheckQuiet(r.CaBundleConf) {
+				configMapVolumeMounts := []corev1.VolumeMount {{
+					Name:      r.CaBundleConf.Name,
+					MountPath: "/etc/pki/ca-trust/extracted/pem",
+					ReadOnly: true,
+				}}
+				util.MergeVolumeMountList(&c.VolumeMounts, &configMapVolumeMounts)
+			}
+}
 	}
 	if r.NooBaa.Spec.ImagePullSecret == nil {
 		podSpec.ImagePullSecrets =
@@ -517,6 +527,24 @@ func (r *Reconciler) SetDesiredCoreApp() error {
 		replicas = int32(0)
 	}
 	r.CoreApp.Spec.Replicas = &replicas
+
+	if util.KubeCheckQuiet(r.CaBundleConf) {
+		configMapVolumes := []corev1.Volume {{
+			Name: r.CaBundleConf.Name,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: r.CaBundleConf.Name,
+					},
+					Items: []corev1.KeyToPath{{
+						Key:  "ca-bundle.crt",
+						Path: "tls-ca-bundle.pem",
+					}},
+				},
+			},
+		}}
+		util.MergeVolumeList(&podSpec.Volumes, &configMapVolumes)
+	}
 	return nil
 }
 
@@ -721,6 +749,24 @@ func (r *Reconciler) ReconcileIBMCredentials() error {
 	return nil
 }
 
+// ReconcileCAInject checks if a namespace called openshift-config exist (OCP)
+// if so creates a cofig map for OCP to inject supported CAs to
+func (r *Reconciler) ReconcileCAInject() error {
+	ocpConfigNamespace := &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{Kind: "Namespace"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "openshift-config",
+		},
+	}
+	if util.KubeCheckQuiet(ocpConfigNamespace) {
+		r.Logger.Infof("Found openshift-config ns - will reconcile CA inject configmap: %q", r.CaBundleConf.Name)
+		if err := r.ReconcileObject(r.CaBundleConf, nil); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // SetDesiredAgentProfile updates the value of the AGENT_PROFILE env
 func (r *Reconciler) SetDesiredAgentProfile(profileString string) string {
 	agentProfile := map[string]interface{}{}
@@ -801,7 +847,7 @@ func (r *Reconciler) ReconcileRootSecret() error {
 	return nil
 }
 
-func (r* Reconciler) reconcileRbac(scc, sa, role, binding string) error {
+func (r *Reconciler) reconcileRbac(scc, sa, role, binding string) error {
 	SCC := util.KubeObject(scc).(*secv1.SecurityContextConstraints)
 	util.KubeCreateOptional(SCC)
 
@@ -825,7 +871,7 @@ func (r* Reconciler) reconcileRbac(scc, sa, role, binding string) error {
 }
 
 // reconcileDBRBAC creates DB scc, role, rolebinding and service account
-func (r* Reconciler) reconcileDBRBAC() error {
+func (r *Reconciler) reconcileDBRBAC() error {
 	return r.reconcileRbac(
 		bundle.File_deploy_scc_db_yaml,
 		bundle.File_deploy_service_account_db_yaml,

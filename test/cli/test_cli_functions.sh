@@ -623,15 +623,9 @@ function obc_cycle {
 function account_cycle {
     local buckets=($(test_noobaa silence bucket list  | grep -v "BUCKET-NAME" | awk '{print $1}'))
     local backingstores=($(test_noobaa silence backingstore list | grep -v "NAME" | awk '{print $1}'))
-    test_noobaa account create account1 --allowed_buckets ${buckets[0]} --default_resource ${backingstores[0]}
-    test_noobaa account create account2 --allowed_buckets ${buckets[0]},${buckets[1]} --allow_bucket_create=false # no need for default_resource
-    test_noobaa account create account3 --full_permission # default_resource should be the system default
-    test_noobaa should_fail account create account4 --default_resource ${backingstores[0]} # missing allowed_bucket
-    test_noobaa should_fail account create account5 --full_permission --allowed_buckets ${buckets[0]},${buckets[1]} # can't have both
-    test_noobaa should_fail account create account6 --allowed_buckets no_such_bucket --default_resource ${backingstores[0]}
-    test_noobaa should_fail account create account7 --full_permission --default_resource no_such_backingstore
-    #account1 have a secret and have CRD
-    account_regenerate_keys account1
+    test_noobaa account create account1  #default_resource should be the system default
+    test_noobaa account create account2 --default_resource ${backingstores[0]}
+
     #admin account that have a secret but no CRD 
     account_regenerate_keys "admin@noobaa.io"
     #admin account that don't have a secret and don't have CRD 
@@ -975,4 +969,55 @@ function test_noobaa_cr_deletion() {
         echo_time "❌  Noobaa CR deletion test failed: kubectl delete returned 0"
         exit 1
     fi
+}
+
+function test_noobaa_loadbalancer_source_subnet() {
+    local timeout=0
+    local temp_file=`echo /tmp/test-$(date +%s).json`
+    local subnet1=10.0.0.0/16
+    local subnet2=172.18.0.0/32
+    cat <<EOF > $temp_file
+{
+    "spec": {
+        "loadBalancerSourceSubnets":  {
+            "s3": ["$subnet1"],
+            "sts": ["$subnet2"]
+        }   
+    }
+}
+EOF
+
+    kuberun silence patch noobaas.noobaa.io noobaa --patch-file $temp_file --type merge
+
+    while [ $timeout -lt 60 ]; do
+        sleep 1
+        timeout=$((timeout+1))
+        if [ $timeout -eq 60 ]; then
+            echo_time "❌  Noobaa loadbalancer source subnet test failed"
+            exit 1
+        fi
+
+        local passed=true
+
+        local loadBalancerSourceRanges=`kubectl get services s3 -n ${NAMESPACE} -o json | jq -rc '.spec.loadBalancerSourceRanges'`
+        if [ "$loadBalancerSourceRanges" == "[\"$subnet1\"]" ]; then
+            echo_time "✅  Noobaa loadbalancer source subnet verified for service s3"
+        else
+            echo_time "❌  Noobaa loadbalancer source subnet test failed for service s3"
+            passed=false
+        fi
+
+        local loadBalancerSourceRanges=`kubectl get services sts -n ${NAMESPACE} -o json | jq -rc '.spec.loadBalancerSourceRanges'`
+        if [ "$loadBalancerSourceRanges" == "[\"$subnet2\"]" ]; then
+            echo_time "✅  Noobaa loadbalancer source subnet verified for service sts"
+        else
+            echo_time "❌  Noobaa loadbalancer source subnet test failed for service sts"
+            passed=false
+        fi
+
+        if [ "$passed" == "true" ]; then
+            echo_time "✅  Noobaa loadbalancer source subnet test passed"
+            break
+        fi
+    done
 }

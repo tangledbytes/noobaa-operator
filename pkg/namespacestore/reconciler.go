@@ -361,15 +361,10 @@ func (r *Reconciler) ReconcileDeletion(systemFound bool) error {
 			for i := range r.SystemInfo.Accounts {
 				account := &r.SystemInfo.Accounts[i]
 				if account.DefaultResource == r.NamespaceResourceinfo.Name {
-					allowedBuckets := account.AllowedBuckets
-					if allowedBuckets.PermissionList == nil {
-						allowedBuckets.PermissionList = []string{}
-					}
 					err := r.NBClient.UpdateAccountS3Access(nb.UpdateAccountS3AccessParams{
 						Email:           account.Email,
 						S3Access:        account.HasS3Access,
 						DefaultResource: &internalPoolName,
-						AllowBuckets:    &allowedBuckets,
 					})
 					if err != nil {
 						return err
@@ -719,11 +714,6 @@ func (r *Reconciler) ReconcileExternalConnection() error {
 func (r *Reconciler) CheckExternalConnection(connInfo *nb.CheckExternalConnectionParams) error {
 	res, err := r.NBClient.CheckExternalConnectionAPI(*connInfo)
 	if err != nil {
-		if rpcErr, isRPCErr := err.(*nb.RPCError); isRPCErr {
-			if rpcErr.RPCCode == "INVALID_SCHEMA_PARAMS" {
-				return util.NewPersistentError("InvalidConnectionParams", rpcErr.Message)
-			}
-		}
 		return err
 	}
 

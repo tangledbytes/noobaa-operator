@@ -51,8 +51,7 @@ type AccountInfo struct {
 		Count       int                      `json:"count"`
 		Connections []ExternalConnectionInfo `json:"connections"`
 	} `json:"external_connections"`
-	AllowedBuckets AllowedBuckets `json:"allowed_buckets"`
-	Systems        []struct {
+	Systems []struct {
 		Name  string   `json:"name"`
 		Roles []string `json:"roles"`
 	} `json:"systems"`
@@ -391,12 +390,6 @@ type BucketClaimInfo struct {
 	Namespace   string `json:"namespace,omitempty"`
 }
 
-// AccountAllowedBuckets is part of CreateAccountParams
-type AccountAllowedBuckets struct {
-	FullPermission bool     `json:"full_permission"`
-	PermissionList []string `json:"permission_list"`
-}
-
 // CreateAccountParams is the params of account_api.create_account()
 type CreateAccountParams struct {
 	Name              string                  `json:"name"`
@@ -404,7 +397,6 @@ type CreateAccountParams struct {
 	HasLogin          bool                    `json:"has_login"`
 	S3Access          bool                    `json:"s3_access"`
 	AllowBucketCreate bool                    `json:"allow_bucket_creation"`
-	AllowedBuckets    AccountAllowedBuckets   `json:"allowed_buckets"`
 	DefaultResource   string                  `json:"default_resource,omitempty"`
 	BucketClaimOwner  string                  `json:"bucket_claim_owner,omitempty"`
 	NsfsAccountConfig *nbv1.AccountNsfsConfig `json:"nsfs_account_config,omitempty"`
@@ -560,7 +552,6 @@ type UpdateAccountS3AccessParams struct {
 	S3Access            bool                    `json:"s3_access"`
 	DefaultResource     *string                 `json:"default_resource,omitempty"`
 	AllowBucketCreation *bool                   `json:"allow_bucket_creation,omitempty"`
-	AllowBuckets        *AllowedBuckets         `json:"allowed_buckets,omitempty"`
 	NsfsAccountConfig   *nbv1.AccountNsfsConfig `json:"nsfs_account_config,omitempty"`
 }
 
@@ -598,12 +589,6 @@ type BucketClassInfo struct {
 	ErrorMessage   string                  `json:"error_message"`
 	ShouldRevert   bool                    `json:"should_revert"`
 	RevertToPolicy UpdateBucketClassParams `json:"revert_to_policy"`
-}
-
-// AllowedBuckets is a struct for setting which buckets an account can access
-type AllowedBuckets struct {
-	FullPermission bool     `json:"full_permission"`
-	PermissionList []string `json:"permission_list"`
 }
 
 // CloudAuthMethod is an enum
@@ -684,6 +669,7 @@ type CheckExternalConnectionParams struct {
 	Identity               string          `json:"identity"`
 	Secret                 string          `json:"secret"`
 	AuthMethod             CloudAuthMethod `json:"auth_method,omitempty"`
+	AWSSTSARN              string          `json:"aws_sts_arn,omitempty"`
 	IgnoreNameAlreadyExist bool            `json:"ignore_name_already_exist,omitempty"`
 }
 
@@ -720,6 +706,20 @@ type UpdateEndpointGroupParams struct {
 	IsRemote      bool     `json:"is_remote"`
 	Region        string   `json:"region"`
 	EndpointRange IntRange `json:"endpoint_range"`
+}
+
+// SetDebugLevelParams - params for debug_api.set_debug_level
+type SetDebugLevelParams struct {
+	Module string `json:"module"`
+	Level  int    `json:"level"`
+}
+
+// PublishToClusterParams are the parmas for redirector_api.publish_to_cluster
+type PublishToClusterParams struct {
+	Target        string      `json:"target"`
+	MethodAPI     string      `json:"method_api"`
+	MethodName    string      `json:"method_name"`
+	RequestParams interface{} `json:"request_params"`
 }
 
 // BigIntToHumanBytes returns a human readable bytes string

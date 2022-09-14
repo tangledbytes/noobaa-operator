@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,6 +42,7 @@ func Cmd() *cobra.Command {
 		CmdCreate(),
 		CmdDelete(),
 		CmdStatus(),
+		CmdSetDebugLevel(),
 		CmdList(),
 		CmdReconcile(),
 		CmdYaml(),
@@ -98,6 +100,17 @@ func CmdStatus() *cobra.Command {
 	return cmd
 }
 
+// CmdSetDebugLevel returns a CLI command
+func CmdSetDebugLevel() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "set-debug-level <level>",
+		Short: "Sets core and endpoints debug level. level can be 'warn' or 0-5",
+		Run:   RunSetDebugLevel,
+		Args:  cobra.ExactArgs(1),
+	}
+	return cmd
+}
+
 // CmdReconcile returns a CLI command
 func CmdReconcile() *cobra.Command {
 	cmd := &cobra.Command{
@@ -131,6 +144,8 @@ func LoadSystemDefaults() *nbv1.NooBaa {
 	dbType := options.DBType
 	sys.Spec.DBType = nbv1.DBTypes(dbType)
 	sys.Spec.DisableLoadBalancerService = options.DisableLoadBalancerService
+	sys.Spec.LoadBalancerSourceSubnets.S3 = options.S3LoadBalancerSourceSubnets
+	sys.Spec.LoadBalancerSourceSubnets.STS = options.STSLoadBalancerSourceSubnets
 
 	LoadConfigMapFromFlags()
 
@@ -598,7 +613,7 @@ func RunStatus(cmd *cobra.Command, args []string) {
 	fmt.Println("#-----------------#")
 	fmt.Println("")
 
-	fmt.Println("ExternalDNS :", r.NooBaa.Status.Services.ServiceSts.ExternalDNS)
+	util.PrettyPrint("ExternalDNS", r.NooBaa.Status.Services.ServiceSts.ExternalDNS)
 	fmt.Println("ExternalIP  :", r.NooBaa.Status.Services.ServiceSts.ExternalIP)
 	fmt.Println("NodePorts   :", r.NooBaa.Status.Services.ServiceSts.NodePorts)
 	fmt.Println("InternalDNS :", r.NooBaa.Status.Services.ServiceSts.InternalDNS)
@@ -611,7 +626,7 @@ func RunStatus(cmd *cobra.Command, args []string) {
 	fmt.Println("#----------------#")
 	fmt.Println("")
 
-	fmt.Println("ExternalDNS :", r.NooBaa.Status.Services.ServiceS3.ExternalDNS)
+	util.PrettyPrint("ExternalDNS", r.NooBaa.Status.Services.ServiceS3.ExternalDNS)
 	fmt.Println("ExternalIP  :", r.NooBaa.Status.Services.ServiceS3.ExternalIP)
 	fmt.Println("NodePorts   :", r.NooBaa.Status.Services.ServiceS3.NodePorts)
 	fmt.Println("InternalDNS :", r.NooBaa.Status.Services.ServiceS3.InternalDNS)
@@ -630,7 +645,39 @@ func RunStatus(cmd *cobra.Command, args []string) {
 		fmt.Printf("AWS_ACCESS_KEY_ID     : %s\n", nb.MaskedString(secret.StringData["AWS_ACCESS_KEY_ID"]))
 		fmt.Printf("AWS_SECRET_ACCESS_KEY : %s\n", nb.MaskedString(secret.StringData["AWS_SECRET_ACCESS_KEY"]))
 	}
+	fmt.Println("")
 
+}
+
+// RunSetDebugLevel sets the system debug level
+func RunSetDebugLevel(cmd *cobra.Command, args []string) {
+	log := util.Logger()
+	level := 0
+	if args[0] == "warn" {
+		level = -1
+	} else {
+		var err error
+		level, err = strconv.Atoi(args[0])
+		if err != nil || level < 0 || level > 5 {
+			log.Fatalf(`invalid debug-level argument. must be 'warn' or 0 to 5. %s`, cmd.UsageString())
+		}
+	}
+	nbClient := GetNBClient()
+	err := nbClient.PublishToCluster(nb.PublishToClusterParams{
+		Target:     "",
+		MethodAPI:  "debug_api",
+		MethodName: "set_debug_level",
+		RequestParams: nb.SetDebugLevelParams{
+			Module: "core",
+			Level:  level,
+		},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("")
+	fmt.Printf("Debug level was set to %s successfully\n", args[0])
+	fmt.Println("Debug level is not persistent and is only effective for the currently running core and endpoints pods")
 }
 
 // RunReconcile runs a CLI command
@@ -941,6 +988,14 @@ func CheckSystem(sys *nbv1.NooBaa) bool {
 		log.Printf("❌ NooBaa system deleted at %v", ts)
 		return false // deleted
 	}
+
+	if util.EnsureCommonMetaFields(sys, nbv1.GracefulFinalizer) {
+		if !util.KubeUpdate(sys) {
+			log.Errorf("❌ NooBaa %q failed to add mandatory meta fields", sys.Name)
+			return false
+		}
+	}
+
 	if sys.Status.Accounts == nil {
 		sys.Status.Accounts = &nbv1.AccountsStatus{}
 	}

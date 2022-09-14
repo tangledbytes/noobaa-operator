@@ -25,6 +25,7 @@ OUTPUT ?= build/_output
 BIN ?= $(OUTPUT)/bin
 OLM ?= $(OUTPUT)/olm
 MANIFESTS ?= $(OUTPUT)/manifests
+obc-crd ?= required
 VENV ?= $(OUTPUT)/venv
 
 # OPERATOR_SDK_VERSION is for build perpuse only, the dependencies themself are 
@@ -141,7 +142,7 @@ gen-olm: $(OPERATOR_SDK) gen
 
 gen-odf-package: cli
 	rm -rf $(MANIFESTS)
-	MANIFESTS="$(MANIFESTS)" CSV_NAME="$(csv-name)" SKIP_RANGE="$(skip-range)" REPLACES="$(replaces)" CORE_IMAGE="$(core-image)" DB_IMAGE="$(db-image)" OPERATOR_IMAGE="$(operator-image)" build/gen-odf-package.sh
+	MANIFESTS="$(MANIFESTS)" CSV_NAME="$(csv-name)" SKIP_RANGE="$(skip-range)" REPLACES="$(replaces)" CORE_IMAGE="$(core-image)" DB_IMAGE="$(db-image)" OPERATOR_IMAGE="$(operator-image)" OBC_CRD="$(obc-crd)" build/gen-odf-package.sh
 	@echo "✅ gen-odf-package"
 .PHONY: gen-odf-package
 
@@ -218,6 +219,11 @@ test-kms-ibm-kp: vendor
 	ginkgo -v pkg/util/kms/test/ibm-kp
 	@echo "✅ test-kms-ibm-kp"
 .PHONY: test-kms-ibm-kp
+
+test-kms-kmip: vendor
+	ginkgo -v pkg/util/kms/test/kmip
+	@echo "✅ test-kms-kmip"
+.PHONY: test-kms-kmip
 
 test-admission: vendor
 	ginkgo -v pkg/admission/test/integ
